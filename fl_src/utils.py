@@ -632,6 +632,7 @@ class FLClient(nn.Module) :
         
 
         model_clone.load_state_dict(model_params_renamed)
+        model_clone = model_clone.to(self.device)
         KD_optimizer = optim.SGD(model_clone.parameters(), lr=self.params['lr'])
 
         
