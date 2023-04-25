@@ -506,10 +506,10 @@ class FLClient(nn.Module) :
         else : 
             self.public_set = (self.public_set[0], metadata )
 
-    def communicate_meta(self, lambdaa, beta, augment) : 
+    def communicate_meta(self, beta, lambdaa, augment) : 
     
-        self.lambdaa = lambdaa 
         self.beta = beta
+        self.lambdaa = lambdaa 
         self.augment = augment
 
         np.random.seed(self.beta) 
