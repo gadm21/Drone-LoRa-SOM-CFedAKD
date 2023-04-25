@@ -350,7 +350,7 @@ def get_cifar10_dataloader(datadir, batchsize) :
     testloader = torch.utils.data.DataLoader(torch_data.TensorDataset(torch.from_numpy(X_test), torch.from_numpy(y_test)), batch_size=batchsize, shuffle=False)
     return trainloader, testloader
 
-def load_cifar10_data(datadir, fraction = 0.2):
+def load_cifar10_data(datadir, fraction = 1.0):
     transform = transforms.Compose([transforms.ToTensor()])
 
     cifar10_train_ds = CIFAR10_truncated(datadir, train=True, download=True, transform=transform)
@@ -359,7 +359,7 @@ def load_cifar10_data(datadir, fraction = 0.2):
     X_train, y_train = cifar10_train_ds.data, cifar10_train_ds.target
     X_test, y_test = cifar10_test_ds.data, cifar10_test_ds.target
     
-    # permute and sample 20% data
+    # permute data 
     sample_size = (fraction*len(X_train))
     idx_train = np.random.permutation(len(X_train))
     idx_test = np.random.permutation(len(X_test))

@@ -61,7 +61,7 @@ import itertools
 # ______________________________________________________________________
 
 
-RESULTS_DIR = "/results"
+RESULTS_DIR = "/fl_results"
 MODELS_DIR = "/models"
 
 depth_dataset_info = {
