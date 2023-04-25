@@ -624,17 +624,20 @@ class FLClient(nn.Module) :
     def digest(self) : 
         
         # self.model.attribute = list(self.model.attribute)  # where attribute was dict_keys
-        model_clone = get_heterogeneous_model(self.client_id, self.local_set[0].shape, n_classes = self.local_set[1].shape[-1])
-        model_params = get_state_dict_copy(self.model)
-        # rename model_parma keys to match model_clone keys
-        
-        model_params_renamed = {k.replace('_module.', ''): v for k, v in model_params.items()}
-        
+        if self.private : 
+            model_clone = get_heterogeneous_model(self.client_id, self.local_set[0].shape, n_classes = self.local_set[1].shape[-1])
+            model_params = get_state_dict_copy(self.model)
+            # rename model_parma keys to match model_clone keys
+            
+            model_params_renamed = {k.replace('_module.', ''): v for k, v in model_params.items()}
+            
 
-        model_clone.load_state_dict(model_params_renamed)
-        model_clone = model_clone.to(self.device)
-        KD_optimizer = optim.SGD(model_clone.parameters(), lr=self.params['lr'])
-
+            model_clone.load_state_dict(model_params_renamed)
+            model_clone = model_clone.to(self.device)
+            KD_optimizer = optim.SGD(model_clone.parameters(), lr=self.params['lr'])
+        else : 
+            model_clone = self.model
+            KD_optimizer = self.optimizer
         
         public_dataset = torch_data.TensorDataset(torch.tensor(self.public_set[0]), torch.tensor(self.public_set[1]))
         self.public_dl = DataLoader(public_dataset, batch_size = 32, shuffle = True)
@@ -646,7 +649,8 @@ class FLClient(nn.Module) :
             for x, y in self.public_dl : 
                 x = x.to(self.device).to(torch.float32)
                 y = y.to(self.device).to(torch.float32)
-
+                # print the type of both the model and the data 
+                print(type(model_clone), type(x), type(y))
                 logits, probs = model_clone(x)
                 loss = self.mse(logits, y)
                 loss.backward()
