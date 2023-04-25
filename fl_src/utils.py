@@ -401,8 +401,9 @@ class FLClient(nn.Module) :
         self.cce = nn.CrossEntropyLoss()
         self.mse = nn.MSELoss()
 
+        self.private = self.params['private']
         
-        if self.params['private'] : 
+        if self.private : 
             # The optimizer will be set in the make_private function
 
             self.model = ModuleValidator.fix(self.model)
