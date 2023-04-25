@@ -105,24 +105,30 @@ n_iterations = 100
 # ______________________________________________________________________
 
 
-# a function that calculates model size in MB
-def get_model_size(state_dict):
-    torch.save(state_dict, "temp.p")
-    size = os.path.getsize("temp.p")/1e6
-    os.remove('temp.p')
-    return size
+# a function that calculates model size
+def get_model_size(state_dict, size = 'MB'):
+    if size == 'MB' : 
+        return sum([param.nelement() for param in state_dict.values()]) * 4 / 1e6
+    elif size == 'KB' : 
+        return sum([param.nelement() for param in state_dict.values()]) * 4 / 1e3
+    else : 
+        raise ValueError("size must be either 'MB' or 'KB'")
 
-# a function that calculates numpy array size in MB
-def get_array_size(array):
-    size = array.nbytes / 1e6
-    return size
+# a function that calculates numpy array size
+def get_array_size(array, size = 'MB') : 
+    if size == 'MB' : 
+        return array.nbytes/1e6
+    elif size == 'KB' : 
+        return array.nbytes/1e3
+    else : 
+        raise ValueError("size must be either 'MB' or 'KB'")
 
-def size_of(obj) : 
+def size_of(obj, size = 'MB') : 
     # if obj is a numpy array
     if isinstance(obj, np.ndarray) :
-        return get_array_size(obj)
+        return get_array_size(obj, size)
     else: 
-        return get_model_size(obj)
+        return get_model_size(obj, size)
     
 
         
@@ -799,7 +805,11 @@ class FLServer(nn.Module):
             client.save_assets()
 
     def global_update(self):
-        idxs_users = np.random.choice(range(len(self.clients)), int(self.C * len(self.clients)), replace=False)
+        
+        if self.C != 1 : 
+            idxs_users = np.random.choice(range(len(self.clients)), int(self.C * len(self.clients)), replace=False)
+        else :
+            idxs_users = range(len(self.clients))
         
         for idx in idxs_users:
             self.clients[idx].local_update()
