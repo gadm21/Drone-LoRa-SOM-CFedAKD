@@ -806,11 +806,8 @@ class FLServer(nn.Module):
 
     def global_update(self):
         
-        if self.C != 1 : 
-            idxs_users = np.random.choice(range(len(self.clients)), int(self.C * len(self.clients)), replace=False)
-        else :
-            idxs_users = range(len(self.clients))
-        
+        idxs_users = np.random.choice(range(len(self.clients)), int(self.C * len(self.clients)), replace=False)
+
         for idx in idxs_users:
             self.clients[idx].local_update()
         
