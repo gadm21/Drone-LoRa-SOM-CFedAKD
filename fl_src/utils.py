@@ -650,8 +650,7 @@ class FLClient(nn.Module) :
             for x, y in self.public_dl : 
                 x = x.to(self.device).to(torch.float32)
                 y = y.to(self.device).to(torch.float32)
-                # print the type of both the model and the data 
-                print(type(model_clone), type(x), type(y))
+                
                 logits, probs = model_clone(x)
                 loss = self.mse(logits, y)
                 loss.backward()
