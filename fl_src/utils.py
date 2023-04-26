@@ -359,12 +359,13 @@ def get_heterogeneous_model(client_id, dataset_shape, n_classes) :
         else :
             model = ThreeLayerMLP(dataset_shape[1], n_classes = n_classes)
     elif len(dataset_shape) == 4 : 
-        if model_id == 0 : 
-            model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 32, f2 = 64, f3 = 128, n_classes = n_classes)
-        elif model_id == 1 :
-            model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 4, f2 = 12, f3 = 25, n_classes = n_classes)
-        else :
-            model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 10, f2 = 20, f3 = 25, n_classes = n_classes)
+        model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 64, f2 = 100, f3 = 200, n_classes = n_classes)
+        # if model_id == 0 : 
+        #     model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 32, f2 = 64, f3 = 128, n_classes = n_classes)
+        # elif model_id == 1 :
+        #     model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 4, f2 = 12, f3 = 25, n_classes = n_classes)
+        # else :
+        #     model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 10, f2 = 20, f3 = 25, n_classes = n_classes)
     else : 
         raise ValueError("Dataset shape not supported")
     

@@ -115,21 +115,22 @@ class HAR_CV_Net(nn.Module):
         self.f1, self.f2, self.f3 = f1, f2, f3
         self.n_classes = n_classes
         self.input_shape = input_shape
-        self.n_hidden = 128
+        self.n_hidden = 256
 
-        self.dropout1 = nn.Dropout2d(0.2)
+        self.dropout1 = nn.Dropout2d(0.1)
 
         self.conv1 = nn.Conv2d(input_shape[-1], self.f1, kernel_size=3, stride=1)
         self.conv2 = nn.Conv2d(self.f1, self.f2, kernel_size=3, stride=1)
         self.conv3 = nn.Conv2d(self.f2, self.f3, kernel_size=3, stride=1)
+        self.conv4 = nn.Conv2d(self.f3, self.n_hidden, kernel_size=3, stride=1)
         
 
         # adaptive maxpooling layer
-        self.adaptive_maxpool = nn.AdaptiveMaxPool2d((1, 1))
+        # self.adaptive_maxpool = nn.AdaptiveMaxPool2d((1, 1))
 
         self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.linear1 = nn.Linear(128, 50)
-        self.linear2 = nn.Linear(50, n_classes)
+        self.linear1 = nn.Linear(1024, 128)
+        self.linear2 = nn.Linear(128, n_classes)
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)
 
@@ -154,8 +155,12 @@ class HAR_CV_Net(nn.Module):
         x = self.conv3(x)
         x = self.relu(x)
         x = self.maxpool(x)
+
+        x = self.conv4(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
         
-        x = self.adaptive_maxpool(x)
+        # x = self.adaptive_maxpool(x)
 
         x = x.flatten(start_dim=1)
         
