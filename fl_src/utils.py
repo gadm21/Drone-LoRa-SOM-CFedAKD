@@ -61,7 +61,7 @@ import itertools
 # ______________________________________________________________________
 
 
-RESULTS_DIR = "/fl_results"
+RESULTS_DIR = "/results"
 MODELS_DIR = "/models"
 
 depth_dataset_info = {
@@ -105,30 +105,24 @@ n_iterations = 100
 # ______________________________________________________________________
 
 
-# a function that calculates model size
-def get_model_size(state_dict, size = 'MB'):
-    if size == 'MB' : 
-        return sum([param.nelement() for param in state_dict.values()]) * 4 / 1e6
-    elif size == 'KB' : 
-        return sum([param.nelement() for param in state_dict.values()]) * 4 / 1e3
-    else : 
-        raise ValueError("size must be either 'MB' or 'KB'")
+# a function that calculates model size in MB
+def get_model_size(state_dict):
+    torch.save(state_dict, "temp.p")
+    size = os.path.getsize("temp.p")/1e6
+    os.remove('temp.p')
+    return size
 
-# a function that calculates numpy array size
-def get_array_size(array, size = 'MB') : 
-    if size == 'MB' : 
-        return array.nbytes/1e6
-    elif size == 'KB' : 
-        return array.nbytes/1e3
-    else : 
-        raise ValueError("size must be either 'MB' or 'KB'")
+# a function that calculates numpy array size in MB
+def get_array_size(array):
+    size = array.nbytes / 1e6
+    return size
 
-def size_of(obj, size = 'MB') : 
+def size_of(obj) : 
     # if obj is a numpy array
     if isinstance(obj, np.ndarray) :
-        return get_array_size(obj, size)
+        return get_array_size(obj)
     else: 
-        return get_model_size(obj, size)
+        return get_model_size(obj)
     
 
         
@@ -359,13 +353,12 @@ def get_heterogeneous_model(client_id, dataset_shape, n_classes) :
         else :
             model = ThreeLayerMLP(dataset_shape[1], n_classes = n_classes)
     elif len(dataset_shape) == 4 : 
-        model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 64, f2 = 100, f3 = 200, n_classes = n_classes)
-        # if model_id == 0 : 
-        #     model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 32, f2 = 64, f3 = 128, n_classes = n_classes)
-        # elif model_id == 1 :
-        #     model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 4, f2 = 12, f3 = 25, n_classes = n_classes)
-        # else :
-        #     model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 10, f2 = 20, f3 = 25, n_classes = n_classes)
+        if model_id == 0 : 
+            model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 32, f2 = 64, f3 = 128, n_classes = n_classes)
+        elif model_id == 1 :
+            model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 4, f2 = 12, f3 = 25, n_classes = n_classes)
+        else :
+            model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 10, f2 = 20, f3 = 25, n_classes = n_classes)
     else : 
         raise ValueError("Dataset shape not supported")
     
@@ -396,21 +389,23 @@ class FLClient(nn.Module) :
         self.client_id = client_id
         self.local_set, self.public_set, self.test_set = data
         self.model = get_heterogeneous_model(self.client_id, self.local_set[0].shape, n_classes = self.local_set[1].shape[-1])
-        train_dataset = torch_data.TensorDataset(torch.tensor(self.local_set[0]), torch.tensor(self.local_set[1]))
-        test_dataset = torch_data.TensorDataset(torch.tensor(self.test_set[0]), torch.tensor(self.test_set[1]))
+        self.train_dataset = torch_data.TensorDataset(torch.tensor(self.local_set[0]), torch.tensor(self.local_set[1]))
+        self.test_dataset = torch_data.TensorDataset(torch.tensor(self.test_set[0]), torch.tensor(self.test_set[1]))
+        self.public_dataset = torch_data.TensorDataset(torch.tensor(self.public_set[0]), torch.tensor(self.public_set[1]))
 
-        self.local_dl = DataLoader(train_dataset, batch_size = self.batch_size, shuffle = True)
-        self.test_dl = DataLoader(test_dataset, batch_size = self.batch_size, shuffle = True)
+        self.local_dl = DataLoader(self.train_dataset, batch_size = self.batch_size, shuffle = True)
+        self.test_dl = DataLoader(self.test_dataset, batch_size = self.batch_size, shuffle = True)
+        self.public_dl = DataLoader(self.public_dataset, batch_size = self.batch_size, shuffle = True)
 
         self.local_acc, self.local_loss = [], []
         self.test_accs, self.test_losses = [], []
         self.train_accs, self.train_losses = [], []
+        self.public_accs, self.public_losses = [], []
         self.cce = nn.CrossEntropyLoss()
         self.mse = nn.MSELoss()
 
-        self.private = self.params['private']
         
-        if self.private : 
+        if self.params['private'] : 
             # The optimizer will be set in the make_private function
 
             self.model = ModuleValidator.fix(self.model)
@@ -457,8 +452,15 @@ class FLClient(nn.Module) :
         return test_acc 
 
 
-
+    def align_public_set(self, epochs) : 
         
+        public_optimizer = optim.SGD(self.model.parameters(), lr=self.params['lr'])
+        for epoch in range(epochs) : 
+            pub_acc, pub_loss = train(self.model, self.public_dl, self.cce, public_optimizer, None, None, None, False)
+            
+            self.public_accs.append(pub_acc)
+            self.public_losses.append(pub_loss)
+            
 
     def hyperparameter_tuning(self) :
         print("Client {} is tuning hyperparameters".format(self.client_id), end = " ")
@@ -513,10 +515,10 @@ class FLClient(nn.Module) :
         else : 
             self.public_set = (self.public_set[0], metadata )
 
-    def communicate_meta(self, beta, lambdaa, augment) : 
+    def communicate_meta(self, lambdaa, beta, augment) : 
     
-        self.beta = beta
         self.lambdaa = lambdaa 
+        self.beta = beta
         self.augment = augment
 
         np.random.seed(self.beta) 
@@ -632,20 +634,16 @@ class FLClient(nn.Module) :
     def digest(self) : 
         
         # self.model.attribute = list(self.model.attribute)  # where attribute was dict_keys
-        if self.private : 
-            model_clone = get_heterogeneous_model(self.client_id, self.local_set[0].shape, n_classes = self.local_set[1].shape[-1])
-            model_params = get_state_dict_copy(self.model)
-            # rename model_parma keys to match model_clone keys
-            
-            model_params_renamed = {k.replace('_module.', ''): v for k, v in model_params.items()}
-            
+        model_clone = get_heterogeneous_model(self.client_id, self.local_set[0].shape, n_classes = self.local_set[1].shape[-1])
+        model_params = get_state_dict_copy(self.model)
+        # rename model_parma keys to match model_clone keys
+        
+        model_params_renamed = {k.replace('_module.', ''): v for k, v in model_params.items()}
+        
 
-            model_clone.load_state_dict(model_params_renamed)
-            model_clone = model_clone.to(self.device)
-            KD_optimizer = optim.SGD(model_clone.parameters(), lr=self.params['lr'])
-        else : 
-            model_clone = self.model
-            KD_optimizer = self.optimizer
+        model_clone.load_state_dict(model_params_renamed)
+        KD_optimizer = optim.SGD(model_clone.parameters(), lr=self.params['lr'])
+
         
         public_dataset = torch_data.TensorDataset(torch.tensor(self.public_set[0]), torch.tensor(self.public_set[1]))
         self.public_dl = DataLoader(public_dataset, batch_size = 32, shuffle = True)
@@ -657,7 +655,7 @@ class FLClient(nn.Module) :
             for x, y in self.public_dl : 
                 x = x.to(self.device).to(torch.float32)
                 y = y.to(self.device).to(torch.float32)
-                
+
                 logits, probs = model_clone(x)
                 loss = self.mse(logits, y)
                 loss.backward()
@@ -789,6 +787,11 @@ class FLServer(nn.Module):
             client_id = 0 #i if 'soft_labels' in fl_param['aggregate'] else fl_param['default_client_id']
             data = (fl_param['local_sets'][i], fl_param['public_set'], fl_param['test_sets'][i])
             self.clients.append(FLClient(client_id, data, fl_param))
+        
+        # initial alignment
+        if self.params['initial_pub_alignment_epochs'] > 0 : 
+            for client in self.clients : 
+                client.align_public_set(self.params['initial_pub_alignment_epochs'])
 
 
     def broadcast(self, new_par):
@@ -806,9 +809,8 @@ class FLServer(nn.Module):
             client.save_assets()
 
     def global_update(self):
-        
         idxs_users = np.random.choice(range(len(self.clients)), int(self.C * len(self.clients)), replace=False)
-
+        
         for idx in idxs_users:
             self.clients[idx].local_update()
         
