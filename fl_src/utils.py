@@ -735,12 +735,13 @@ class Aggregator () :
     def aggregate_weights(clients, idxs_users, weights = None) : 
     
         """FedAvg"""
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = 'cpu'
         models_par = [clients[idx].model.state_dict() for idx in idxs_users]
-        new_par = copy.deepcopy(models_par[0])
+        new_par = {}
         C = clients[0].params["C"]
-        for name in new_par:
-            new_par[name] = torch.zeros(new_par[name].shape).to(device)
+        for name in models_par[0]:
+            new_par[name] = torch.zeros(models_par[0][name].shape).to(device)
         if weights is None : 
             weights = np.ones(len(idxs_users)).astype(np.float32) 
         for idx, par in enumerate(models_par):
