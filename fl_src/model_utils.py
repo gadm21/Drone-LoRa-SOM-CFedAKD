@@ -175,6 +175,14 @@ class HAR_CV_Net(nn.Module):
         
         return y1, y2
 
+# remove the last two layer of pytorch model to change the output dimension
+# def change_output_dim(model, remove_layers, n_classes):
+
+#     model = nn.Sequential(*list(model.children())[:-1*remove_layers])
+#     output_dim = model[-1].out_features
+#     model.add_module('linear1', nn.Linear(output_dim, n_classes))
+#     model.add_module('softmax', nn.Softmax(dim = 1))
+#     return model
 
 
 class OneLayerMLP(nn.Module):
@@ -331,3 +339,15 @@ def test(model, test_loader, criterion, privacy_engine = None, DELTA = None, dev
         
 
     return mean(accs), mean(losses)
+
+
+if __name__ == "__main__" : 
+    sample = torch.randn(1, 32, 32, 3)
+    model = HAR_CV_Net(input_shape = sample.shape[1:], f1 = 32, f2 = 64, f3 = 128, n_classes = 10)
+    newmodel = change_output_dim(model, remove_layers = 3, n_classes = 100) 
+    print(newmodel)
+
+    out1, out2 = model(sample)
+    # out2 = newmodel(sample)
+    print(out1.shape)
+    print(out2.shape)

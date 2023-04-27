@@ -453,6 +453,7 @@ class FLClient(nn.Module) :
 
 
     def align_public_set(self, epochs) : 
+
         
         public_optimizer = optim.SGD(self.model.parameters(), lr=self.params['lr'])
         for epoch in range(epochs) : 
@@ -460,8 +461,7 @@ class FLClient(nn.Module) :
             
             self.public_accs.append(pub_acc)
             self.public_losses.append(pub_loss)
-            
-
+        
     def hyperparameter_tuning(self) :
         print("Client {} is tuning hyperparameters".format(self.client_id), end = " ")
         lr = self.params['lr']
@@ -789,7 +789,7 @@ class FLServer(nn.Module):
             self.clients.append(FLClient(client_id, data, fl_param))
         
         # initial alignment
-        if self.params['initial_pub_alignment_epochs'] > 0 : 
+        if 'soft_labels' in self.params['aggregate'] and self.params['initial_pub_alignment_epochs'] > 0 : 
             for client in self.clients : 
                 client.align_public_set(self.params['initial_pub_alignment_epochs'])
 
@@ -811,9 +811,7 @@ class FLServer(nn.Module):
     def global_update(self):
         idxs_users = np.random.choice(range(len(self.clients)), int(self.C * len(self.clients)), replace=False)
         
-        for idx in idxs_users:
-            self.clients[idx].local_update()
-        
+
         if self.params['aggregate'] == 'soft_labels':
             
             if self.params['augment'] : 
@@ -849,6 +847,10 @@ class FLServer(nn.Module):
             self.broadcast(global_weights)
         else : 
             raise NotImplementedError
+        
+        for idx in idxs_users:
+            self.clients[idx].local_update()
+        
 
         all_accs = [self.clients[idx].get_test_acc() for idx in idxs_users]
         all_train_accs = [self.clients[idx].get_train_acc() for idx in idxs_users]
