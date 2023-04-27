@@ -712,7 +712,8 @@ class Aggregator () :
 
     @staticmethod
     def aggregate_soft_labels(clients, idxs_users, weights = None, compress = False) : 
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = torch.device("cpu")
         all_soft_labels = [clients[idx].get_soft_labels(normalize = compress, compress = compress) for idx in idxs_users]
         # print means of soft labels
         # for idx, soft_labels in enumerate(all_soft_labels):
@@ -721,7 +722,7 @@ class Aggregator () :
         C = clients[0].params["C"]
         if weights is None : 
             weights = np.ones(len(idxs_users)).astype(np.float32) 
-        global_soft_labels = np.zeros(all_soft_labels[0].shape)
+        global_soft_labels = np.zeros(all_soft_labels[0].shape).to(device)
         for idx, soft_labels in enumerate(all_soft_labels):
             w = weights[idx] / np.sum(weights)
             # not sure about this, but will be ok if C = 1.0
@@ -736,7 +737,7 @@ class Aggregator () :
     
         """FedAvg"""
         # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        device = 'cpu'
+        device = torch.device("cpu")
         models_par = [clients[idx].model.state_dict() for idx in idxs_users]
         new_par = {}
         C = clients[0].params["C"]
