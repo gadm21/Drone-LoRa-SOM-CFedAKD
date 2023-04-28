@@ -748,7 +748,7 @@ class Aggregator () :
         for idx, par in enumerate(models_par):
             w = weights[idx] / np.sum(weights)
             for name in new_par:
-                new_par[name] += par[name] * (w / C)
+                new_par[name] += par[name].to(device) * (w / C)
         return models_par, new_par 
 
 
