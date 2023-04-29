@@ -416,7 +416,7 @@ class FLClient(nn.Module) :
         self.test_dl = DataLoader(self.test_dataset, batch_size = self.batch_size, shuffle = True)
         self.public_dl = DataLoader(self.public_dataset, batch_size = self.batch_size, shuffle = True)
 
-        self.local_accs, self.local_loss = [], []
+        self.local_accs, self.local_losses = [], []
         self.test_accs, self.test_losses = [], []
         self.train_accs, self.train_losses = [], []
         self.public_accs, self.public_losses = [], []
@@ -468,7 +468,7 @@ class FLClient(nn.Module) :
             test_acc, test_loss = test(self.local_model, self.test_dl, None, None, None, False)
             if save_results: 
                 self.local_accs.append(test_acc)
-                self.local_loss.append(test_loss)
+                self.local_losses.append(test_loss)
             
         return test_acc 
 
@@ -707,8 +707,8 @@ class FLClient(nn.Module) :
         # torch.save(self.model.state_dict(), self.model_path)
         
         local_df = {
-            'local_acc' : self.local_acc, 
-            'local_loss' : self.local_loss,
+            'local_acc' : self.local_accs, 
+            'local_loss' : self.local_losses,
         }
         fl_df = {
             'fl_acc' : self.test_accs,
