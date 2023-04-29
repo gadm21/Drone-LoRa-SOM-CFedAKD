@@ -168,6 +168,7 @@ class FedAMDNode :
         self.train_accs, self.train_losses = [], []
         self.cce = nn.CrossEntropyLoss()
         self.mse = nn.MSELoss()
+        self.nllloss = nn.NLLLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
 
@@ -201,9 +202,11 @@ class FedAMDNode :
                 x = x.to(self.device)
                 y = y.to(self.device)
 
-                logits, probs = self.model(x)
+                logits = self.model(x)
+                probs = softmax_with_temperature(logits, 1.0) 
+                log_probs = torch.log(probs)
                 preds = probs.argmax(-1)
-                loss = self.cce(probs, y)
+                loss = self.nllloss(log_probs, y.argmax(-1))
                 n_correct = float(preds.eq(y.argmax(-1)).sum())
                 accs.append( n_correct / len(y))
                 losses.append( float(loss) )
@@ -223,8 +226,12 @@ class FedAMDNode :
                 y = y.to(self.device)
 
                 self.optimizer.zero_grad()
-                logits, probs = self.model(x)
-                loss = self.cce(probs, y)
+                logits = self.model(x)
+                probs = softmax_with_temperature(logits, 1.0)
+                log_probs = torch.log(probs)
+                preds = probs.argmax(-1)
+                
+                loss = self.nllloss(log_probs, y.argmax(-1))
                 loss.backward()
 
                 self.optimizer.step()
@@ -354,7 +361,8 @@ def get_heterogeneous_model(client_id, dataset_shape, n_classes) :
             model = ThreeLayerMLP(dataset_shape[1], n_classes = n_classes)
     elif len(dataset_shape) == 4 : 
         if model_id == 0 : 
-            model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 32, f2 = 64, f3 = 128, n_classes = n_classes)
+            model = Net_CIFAR()
+            # model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 32, f2 = 64, f3 = 128, n_classes = n_classes)
         elif model_id == 1 :
             model = HAR_CV_Net(input_shape = dataset_shape[1:], f1 = 4, f2 = 12, f3 = 25, n_classes = n_classes)
         else :
@@ -378,6 +386,7 @@ def compress_labels(preds) :
 
 
 
+
 class FLClient(nn.Module) : 
 
     def __init__(self, client_id, data, params) : 
@@ -389,20 +398,31 @@ class FLClient(nn.Module) :
         self.client_id = client_id
         self.local_set, self.public_set, self.test_set = data
         self.model = get_heterogeneous_model(self.client_id, self.local_set[0].shape, n_classes = self.local_set[1].shape[-1])
+
         self.train_dataset = torch_data.TensorDataset(torch.tensor(self.local_set[0]), torch.tensor(self.local_set[1]))
         self.test_dataset = torch_data.TensorDataset(torch.tensor(self.test_set[0]), torch.tensor(self.test_set[1]))
         self.public_dataset = torch_data.TensorDataset(torch.tensor(self.public_set[0]), torch.tensor(self.public_set[1]))
+        # my_transforms = transforms.Compose(
+        #     [transforms.RandomHorizontalFlip(),
+        #     transforms.RandomCrop(32, padding=4),
+        #     transforms.ToTensor(),
+        #     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+        # self.train_dataset = HARDataset(self.local_set[0], self.local_set[1], transform = my_transforms)
+        # self.test_dataset = HARDataset(self.test_set[0], self.test_set[1], transform = my_transforms) 
+        # self.public_dataset = HARDataset(self.public_set[0], self.public_set[1], transform = my_transforms) 
 
         self.local_dl = DataLoader(self.train_dataset, batch_size = self.batch_size, shuffle = True)
         self.test_dl = DataLoader(self.test_dataset, batch_size = self.batch_size, shuffle = True)
         self.public_dl = DataLoader(self.public_dataset, batch_size = self.batch_size, shuffle = True)
 
-        self.local_acc, self.local_loss = [], []
+        self.local_accs, self.local_loss = [], []
         self.test_accs, self.test_losses = [], []
         self.train_accs, self.train_losses = [], []
         self.public_accs, self.public_losses = [], []
+
         self.cce = nn.CrossEntropyLoss()
         self.mse = nn.MSELoss()
+        self.nllloss = nn.NLLLoss()
 
         
         if self.params['private'] : 
@@ -443,13 +463,14 @@ class FLClient(nn.Module) :
         self.local_optimizer = optim.SGD(self.local_model.parameters(), lr=self.best_lr)
 
         for epoch in range(self.params['local_benchmark_epochs']) : 
-            _, _ = train(self.local_model, self.local_dl, self.cce, self.local_optimizer, None, None, None, False)
-            test_acc, test_loss = test(self.local_model, self.test_dl, self.cce, None, None, None, False)
+            _, _ = train(self.local_model, self.local_dl, self.local_optimizer, None, None, None, False)
+            test_acc, test_loss = test(self.local_model, self.test_dl, None, None, None, False)
             if save_results: 
-                self.local_acc.append(test_acc)
+                self.local_accs.append(test_acc)
                 self.local_loss.append(test_loss)
             
         return test_acc 
+
 
 
     def align_public_set(self, epochs) : 
@@ -457,7 +478,7 @@ class FLClient(nn.Module) :
         
         public_optimizer = optim.SGD(self.model.parameters(), lr=self.params['lr'])
         for epoch in range(epochs) : 
-            pub_acc, pub_loss = train(self.model, self.public_dl, self.cce, public_optimizer, None, None, None, False)
+            pub_acc, pub_loss = train(self.model, self.public_dl, public_optimizer, None, None, None, False)
             
             self.public_accs.append(pub_acc)
             self.public_losses.append(pub_loss)
@@ -515,6 +536,7 @@ class FLClient(nn.Module) :
         else : 
             self.public_set = (self.public_set[0], metadata )
 
+
     def communicate_meta(self, lambdaa, beta, augment) : 
     
         self.lambdaa = lambdaa 
@@ -539,6 +561,7 @@ class FLClient(nn.Module) :
         
         x_torch = torch.from_numpy(self.public_set[0]).float().to(self.device)
         preds = self.model(x_torch)[0]
+        # soft_labels = softmax_with_temperature(preds, self.params['temperature'])
         preds = preds.detach().cpu().numpy()
 
         if normalize :
@@ -556,6 +579,7 @@ class FLClient(nn.Module) :
         
         return preds 
 
+
     def evaluate_on_test_set(self): 
         accs, losses = [], []
         with torch.no_grad():
@@ -563,9 +587,11 @@ class FLClient(nn.Module) :
                 x = x.to(self.device).to(torch.float32)
                 y = y.to(self.device).to(torch.float32)
 
-                logits, probs = self.model(x)
+                logits = self.model(x)
+                probs = F.softmax(logits, dim=-1)
+                log_probs = torch.log(probs)
+                loss = self.nllloss(log_probs, y.argmax(-1))
                 preds = probs.argmax(-1)
-                loss = self.cce(probs, y)
                 n_correct = float(preds.eq(y.argmax(-1)).sum())
                 accs.append( n_correct / len(y))
                 losses.append( float(loss) )
@@ -593,9 +619,11 @@ class FLClient(nn.Module) :
                 with BatchMemoryManager(data_loader=self.local_dl, max_physical_batch_size=1, optimizer=self.optimizer) as new_data_loader:  
                     for x, y in new_data_loader:
                         x, y = x.to(torch.float32).to(device), y.to(torch.float32).to(device)
-
-                        logits, probs = self.model(x)
-                        loss = self.cce(probs, y)
+                        
+                        logits = self.model(x)
+                        probs = F.softmax(logits, dim=-1)
+                        log_probs = torch.log(probs)
+                        loss = self.nllloss(log_probs, y.argmax(-1))
                         loss.backward()
 
                         self.optimizer.step()
@@ -610,8 +638,10 @@ class FLClient(nn.Module) :
                 for x, y in self.local_dl:
                     x, y = x.to(torch.float32).to(device), y.to(torch.float32).to(device)
 
-                    logits, probs = self.model(x)
-                    loss = self.cce(probs, y)
+                    logits = self.model(x)
+                    probs = F.softmax(logits, dim=-1)
+                    log_probs = torch.log(probs)
+                    loss = self.nllloss(log_probs, y.argmax(-1))
                     loss.backward()
 
                     self.optimizer.step()
@@ -656,7 +686,8 @@ class FLClient(nn.Module) :
                 x = x.to(self.device).to(torch.float32)
                 y = y.to(self.device).to(torch.float32)
 
-                logits, probs = model_clone(x)
+                logits = model_clone(x)
+                # soft_labels = softmax_with_temperature(logits, self.params['temperature'])
                 loss = self.mse(logits, y)
                 loss.backward()
 
@@ -811,8 +842,7 @@ class FLServer(nn.Module):
             client.save_assets()
 
     def global_update(self):
-        idxs_users = np.random.choice(range(len(self.clients)), int(self.C * len(self.clients)), replace=False)
-        
+        idxs_users = np.random.choice(range(len(self.clients)), int(self.C * len(self.clients)), replace=False)        
 
         if self.params['aggregate'] == 'soft_labels':
             

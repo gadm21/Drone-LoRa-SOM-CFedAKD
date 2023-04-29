@@ -19,6 +19,15 @@ from tqdm import tqdm
 
 
 
+
+
+def softmax_with_temperature(logits, temperature=1.0):
+    """Applies softmax with temperature scaling."""
+    assert temperature > 0, "Temperature must be positive."
+    scaled_logits = logits / temperature
+    return F.softmax(scaled_logits, dim=-1)
+
+
 class MyLSTM(nn.Module):
     def __init__(self, n_features, n_hidden, n_classes, return_sequences=False):
         super(MyLSTM, self).__init__()
@@ -107,6 +116,7 @@ class HAR_T_Net(nn.Module):
         y2 = self.softmax(x)
         
         return y1, y2
+
 
 # class HAR_CV_Net for computer vision data
 class HAR_CV_Net(nn.Module):
@@ -270,22 +280,52 @@ class TwoLayerCNN(nn.Module):
         return x, x2
 
 
+class Net_CIFAR(nn.Module):
+    def __init__(self):
+        super(Net_CIFAR, self).__init__()
+        self.conv1 = nn.Conv2d(3, 32, 3, padding=1)
+        self.conv2 = nn.Conv2d(32, 64, 3, padding=1)
+        self.conv3 = nn.Conv2d(64, 128, 3, padding=1)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.fc1 = nn.Linear(128 * 4 * 4, 512)
+        self.fc2 = nn.Linear(512, 10)
+        # self.softmax = nn.Softmax(dim = 1)
 
-def train(model, train_loader, criterion, optimizer, privacy_engine = None, DELTA = None, device = None, verbose = True):
+    def forward(self, x):
+        x = x.permute(0, 3, 1, 2)
+        x = self.pool(nn.functional.relu(self.conv1(x)))
+        x = self.pool(nn.functional.relu(self.conv2(x)))
+        x = self.pool(nn.functional.relu(self.conv3(x)))
+        x = x.view(-1, 128 * 4 * 4)
+        x = nn.functional.relu(self.fc1(x))
+        logits = self.fc2(x)
+        # probs = self.softmax(x) 
+        # soft_labels = F.softmax(x/0.7, dim=-1)
+        return logits
+
+#___________________((__________________________________
+#_________________________________________________
+#___________________))__________________________________
+
+def train(model, loader, optimizer, privacy_engine = None, DELTA = None, device = None, verbose = True):
 
     if device is None : 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = model.to(device)
     
+    nllloss = nn.NLLLoss()
     accs = []
     losses = []
-    iterator = train_loader
-    for x, y in iterator:
+    for x, y in loader:
         x = x.to(device).to(torch.float32)
         y = y.to(device).to(torch.float32)
 
-        logits, probs = model(x)
-        loss = criterion(probs, y)
+        logits = model(x)
+        probs = softmax_with_temperature(logits, 1.0) 
+        # soft_labels = softmax_with_temperature(logits, 0.7)
+        log_probs = torch.log(probs)
+
+        loss = nllloss(log_probs, y.argmax(-1))
         loss.backward()
 
         optimizer.step()
@@ -310,10 +350,13 @@ def train(model, train_loader, criterion, optimizer, privacy_engine = None, DELT
     return mean(accs), mean(losses)
 
 
-def test(model, test_loader, criterion, privacy_engine = None, DELTA = None, device = None, verbose = True):
+
+def test(model, test_loader, privacy_engine = None, DELTA = None, device = None, verbose = True):
 
     if device is None : 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    nllloss = nn.NLLLoss()
     accs, losses = [], []
     with torch.no_grad():
         iterator = test_loader
@@ -321,9 +364,12 @@ def test(model, test_loader, criterion, privacy_engine = None, DELTA = None, dev
             x = x.to(device).to(torch.float32)
             y = y.to(device).to(torch.float32)
 
-            logits, preds = model(x)
-            loss = criterion(preds, y) 
-            preds = preds.argmax(-1)
+            logits = model(x)
+            probs = softmax_with_temperature(logits, 1.0) 
+            log_probs = torch.log(probs)
+
+            loss = nllloss(log_probs, y.argmax(-1)) 
+            preds = probs.argmax(-1)
             n_correct = float(preds.eq(y.argmax(-1)).sum())
             batch_accuracy = n_correct / len(y)
 
