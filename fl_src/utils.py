@@ -541,7 +541,7 @@ class FLClient(nn.Module) :
             self.public_set = (self.public_set[0], metadata )
 
 
-    def communicate_meta(self, lambdaa, beta, augment) : 
+    def communicate_meta(self, beta, lambdaa, augment) : 
     
         self.lambdaa = lambdaa 
         self.beta = beta
@@ -679,7 +679,7 @@ class FLClient(nn.Module) :
         KD_optimizer = optim.SGD(model_clone.parameters(), lr=self.params['lr'])
 
         
-        public_dataset = torch_data.TensorDataset(torch.tensor(self.public_set[0]), torch.tensor(self.public_set[1]))
+        public_dataset = torch_data.TensorDataset(torch.tensor(self.public_set[0], dtype=torch.float32).permute(0, 3, 1, 2), torch.tensor(self.public_set[1], dtype=torch.float32))
         self.public_dl = DataLoader(public_dataset, batch_size = 32, shuffle = True)
         # self.model.train()
 
@@ -757,7 +757,7 @@ class Aggregator () :
         C = clients[0].params["C"]
         if weights is None : 
             weights = np.ones(len(idxs_users)).astype(np.float32) 
-        global_soft_labels = np.zeros(all_soft_labels[0].shape).to(device)
+        global_soft_labels = np.zeros(all_soft_labels[0].shape)
         for idx, soft_labels in enumerate(all_soft_labels):
             w = weights[idx] / np.sum(weights)
             # not sure about this, but will be ok if C = 1.0
@@ -860,7 +860,8 @@ class FLServer(nn.Module):
             else : weights = [self.clients[idx].get_test_acc() for idx in idxs_users]
             all_soft_labels, global_soft_labels = Aggregator.aggregate_soft_labels(self.clients, idxs_users, weights = weights, compress = False)
             self.broadcast(global_soft_labels)
-            self.clients[idx].digest()
+            for idx in idxs_users:
+                self.clients[idx].digest()
         elif self.params['aggregate'] == 'compressed_soft_labels':
             alpha = np.random.randint(1, 1_000_000)
             beta = np.random.randint(1, 1000)
@@ -873,7 +874,8 @@ class FLServer(nn.Module):
             
             all_soft_labels, global_soft_labels = Aggregator.aggregate_soft_labels(self.clients, idxs_users, weights = weights, compress = True)
             self.broadcast(global_soft_labels)
-            self.clients[idx].digest()
+            for idx in idxs_users:
+                self.clients[idx].digest()
         elif self.params['aggregate'] == 'weights':
             if self.params['weighting'] == 'uniform':
                 weights = [1 for idx in idxs_users]
