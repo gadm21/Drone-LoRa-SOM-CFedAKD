@@ -399,9 +399,10 @@ class FLClient(nn.Module) :
         self.local_set, self.public_set, self.test_set = data
         self.model = get_heterogeneous_model(self.client_id, self.local_set[0].shape, n_classes = self.local_set[1].shape[-1])
 
-        self.train_dataset = torch_data.TensorDataset(torch.tensor(self.local_set[0]), torch.tensor(self.local_set[1]))
-        self.test_dataset = torch_data.TensorDataset(torch.tensor(self.test_set[0]), torch.tensor(self.test_set[1]))
-        self.public_dataset = torch_data.TensorDataset(torch.tensor(self.public_set[0]), torch.tensor(self.public_set[1]))
+        self.train_dataset = torch_data.TensorDataset(torch.tensor(self.local_set[0], dtype=torch.float32).permute(0, 3, 1, 2), torch.tensor(self.local_set[1], dtype=torch.float32))
+        self.test_dataset = torch_data.TensorDataset(torch.tensor(self.test_set[0], dtype=torch.float32).permute(0, 3, 1, 2), torch.tensor(self.test_set[1], dtype=torch.float32))
+        self.public_dataset = torch_data.TensorDataset(torch.tensor(self.public_set[0], dtype=torch.float32).permute(0, 3, 1, 2), torch.tensor(self.public_set[1], dtype=torch.float32))
+
         # my_transforms = transforms.Compose(
         #     [transforms.RandomHorizontalFlip(),
         #     transforms.RandomCrop(32, padding=4),

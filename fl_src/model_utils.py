@@ -292,7 +292,7 @@ class Net_CIFAR(nn.Module):
         # self.softmax = nn.Softmax(dim = 1)
 
     def forward(self, x):
-        x = x.permute(0, 3, 1, 2)
+        # x = x.permute(0, 3, 1, 2)
         x = self.pool(nn.functional.relu(self.conv1(x)))
         x = self.pool(nn.functional.relu(self.conv2(x)))
         x = self.pool(nn.functional.relu(self.conv3(x)))
