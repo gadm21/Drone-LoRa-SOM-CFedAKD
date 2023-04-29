@@ -106,23 +106,26 @@ n_iterations = 100
 
 
 # a function that calculates model size in MB
-def get_model_size(state_dict):
+def get_model_size(state_dict, size = 'KB'):
+    scale = 1e3 if size == 'KB' else 1e6
     torch.save(state_dict, "temp.p")
-    size = os.path.getsize("temp.p")/1e6
+    size = os.path.getsize("temp.p")/scale 
     os.remove('temp.p')
     return size
 
 # a function that calculates numpy array size in MB
-def get_array_size(array):
-    size = array.nbytes / 1e6
+def get_array_size(array, size = 'KB'):
+    scale = 1e3 if size == 'KB' else 1e6
+    size = array.nbytes / scale
     return size
 
-def size_of(obj) : 
+def size_of(obj, size = 'KB') : 
+    scale = 1e3 if size == 'KB' else 1e6
     # if obj is a numpy array
     if isinstance(obj, np.ndarray) :
-        return get_array_size(obj)
+        return get_array_size(obj, size)
     else: 
-        return get_model_size(obj)
+        return get_model_size(obj, size)
     
 
         
@@ -560,14 +563,14 @@ class FLClient(nn.Module) :
     def get_soft_labels(self, normalize = False, compress = False) : 
         self.model.eval()
         
-        x_torch = torch.from_numpy(self.public_set[0]).float().to(self.device)
-        preds = self.model(x_torch)[0]
+        x_torch = torch.from_numpy(self.public_set[0]).permute(0, 3, 1, 2).float().to(self.device)
+        preds = self.model(x_torch)
         # soft_labels = softmax_with_temperature(preds, self.params['temperature'])
         preds = preds.detach().cpu().numpy()
 
         if normalize :
-            preds = preds - preds.min(axis = 1, keepdims = True)
-            preds = preds / preds.max(axis = 1, keepdims = True)
+            preds = preds - preds.min(axis = -1, keepdims = True)
+            preds = preds / preds.max(axis = -1, keepdims = True)
 
         if compress :
             # print("compressed from ", size_of(preds), end = "") 
