@@ -402,22 +402,19 @@ class FLClient(nn.Module) :
         self.local_set, self.public_set, self.test_set = data
         self.model = get_heterogeneous_model(self.client_id, self.local_set[0].shape, n_classes = self.local_set[1].shape[-1])
 
-        self.train_dataset = torch_data.TensorDataset(torch.tensor(self.local_set[0], dtype=torch.float32).permute(0, 3, 1, 2), torch.tensor(self.local_set[1], dtype=torch.float32))
-        self.test_dataset = torch_data.TensorDataset(torch.tensor(self.test_set[0], dtype=torch.float32).permute(0, 3, 1, 2), torch.tensor(self.test_set[1], dtype=torch.float32))
-        self.public_dataset = torch_data.TensorDataset(torch.tensor(self.public_set[0], dtype=torch.float32).permute(0, 3, 1, 2), torch.tensor(self.public_set[1], dtype=torch.float32))
+        my_transforms = transforms.Compose(
+            [transforms.RandomHorizontalFlip(),
+             transforms.RandomCrop(32, padding=4),
+             transforms.ToTensor(),
+             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-        # my_transforms = transforms.Compose(
-        #     [transforms.RandomHorizontalFlip(),
-        #     transforms.RandomCrop(32, padding=4),
-        #     transforms.ToTensor(),
-        #     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-        # self.train_dataset = HARDataset(self.local_set[0], self.local_set[1], transform = my_transforms)
-        # self.test_dataset = HARDataset(self.test_set[0], self.test_set[1], transform = my_transforms) 
-        # self.public_dataset = HARDataset(self.public_set[0], self.public_set[1], transform = my_transforms) 
+        self.train_dataset = HARDataset(self.local_set[0], self.local_set[1], transform=my_transforms)
+        self.test_dataset = HARDataset(self.test_set[0], self.test_set[1], transform=my_transforms)
+        self.public_dataset = HARDataset(self.public_set[0], self.public_set[1], transform=my_transforms)
 
-        self.local_dl = DataLoader(self.train_dataset, batch_size = self.batch_size, shuffle = True)
-        self.test_dl = DataLoader(self.test_dataset, batch_size = self.batch_size, shuffle = True)
-        self.public_dl = DataLoader(self.public_dataset, batch_size = self.batch_size, shuffle = True)
+        self.local_dl = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
+        self.test_dl = DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=True)
+        self.public_dl = DataLoader(self.public_dataset, batch_size=self.batch_size, shuffle=True)
 
         self.local_accs, self.local_losses = [], []
         self.test_accs, self.test_losses = [], []
@@ -427,7 +424,7 @@ class FLClient(nn.Module) :
         self.cce = nn.CrossEntropyLoss()
         self.mse = nn.MSELoss()
         self.nllloss = nn.NLLLoss()
-
+        
         
         if self.params['private'] : 
             # The optimizer will be set in the make_private function
@@ -448,6 +445,7 @@ class FLClient(nn.Module) :
         else : 
             self.optimizer = optim.SGD(self.model.parameters(), lr=self.params['lr'])
 
+        self.KD_optimizer = optim.SGD(self.model.parameters(), lr=self.params['lr']//3)
         
         # for i in range(10) : 
         #     train(self.model, self.local_dl, self.cce, self.optimizer, self.privacy_engine, self.delta, None, True) 
@@ -607,12 +605,15 @@ class FLClient(nn.Module) :
 
 
     def get_test_acc(self) : 
-        return self.test_accs[-1]
+        if len(self.test_accs) == 0 : 
+            return self.evaluate_on_test_set()
+        else : 
+            return self.test_accs[-1]
 
     def get_train_acc(self) : 
         return self.train_accs[-1]
 
-    def local_update(self, evaluate = True) :
+    def local_update(self, evaluate = True, verbose = False) :
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = self.model.to(device)
@@ -662,10 +663,12 @@ class FLClient(nn.Module) :
                 self.test_accs.append(acc) 
                 self.train_accs.append(np.mean(accs))
                 self.test_losses.append(np.mean(losses))
+                if verbose :
+                    print(f"Epoch {epoch} | Train acc {self.train_accs[-1]} | Test acc {self.test_accs[-1]}")
 
 
 
-    def digest(self) : 
+    def private_digest(self) : 
         
         # self.model.attribute = list(self.model.attribute)  # where attribute was dict_keys
         model_clone = get_heterogeneous_model(self.client_id, self.local_set[0].shape, n_classes = self.local_set[1].shape[-1])
@@ -704,6 +707,28 @@ class FLClient(nn.Module) :
         model_clone_params_renamed = { prefix+k: v for k, v in copy.deepcopy(model_clone.state_dict()).items()}
         
         self.model.load_state_dict(model_clone_params_renamed)
+
+
+    def digest(self) : 
+        
+        public_dataset = torch_data.TensorDataset(torch.tensor(self.public_set[0], dtype=torch.float32).permute(0, 3, 1, 2), torch.tensor(self.public_set[1], dtype=torch.float32))
+        self.public_dl = DataLoader(public_dataset, batch_size = 32, shuffle = True)
+
+        KD_epochs = self.epochs
+        for epoch in range(KD_epochs) :
+
+            for x, y in self.public_dl : 
+                x = x.to(self.device).to(torch.float32)
+                y = y.to(self.device).to(torch.float32)
+
+                logits = self.model(x)
+                soft_labels = softmax_with_temperature(logits, self.params['temperature'])
+                loss = self.mse(soft_labels, y)
+                loss.backward()
+
+                self.KD_optimizer.step()
+                self.KD_optimizer.zero_grad()
+
 
     def save_assets(self) : 
         # self.model.cpu()
@@ -845,14 +870,19 @@ class FLServer(nn.Module):
         for client in self.clients : 
             client.save_assets()
 
-    def global_update(self):
+    def global_update(self, verbose = False):
         idxs_users = np.random.choice(range(len(self.clients)), int(self.C * len(self.clients)), replace=False)        
 
+        for idx in idxs_users:
+            # print("client {} accuracy before: {}".format(idx, self.clients[idx].get_test_acc()))
+            self.clients[idx].local_update(verbose = verbose)
+            # print("client {} accuracy after: {} ".format(idx, self.clients[idx].get_test_acc()))
+        
+
         if self.params['aggregate'] == 'soft_labels':
-            
             if self.params['augment'] : 
                 alpha = np.random.randint(1, 1_000_000)
-                beta = np.random.randint(1, 1000)
+                beta = np.random.randint(1, 1_000)
                 lambdaa = np.random.beta(alpha, alpha)
                 self.broadcast_meta(beta = beta, lambdaa=lambdaa)
             if self.params['weighting'] == 'uniform':
@@ -862,20 +892,20 @@ class FLServer(nn.Module):
             self.broadcast(global_soft_labels)
             for idx in idxs_users:
                 self.clients[idx].digest()
+
         elif self.params['aggregate'] == 'compressed_soft_labels':
             alpha = np.random.randint(1, 1_000_000)
-            beta = np.random.randint(1, 1000)
+            beta = np.random.randint(1, 1_000)
             lambdaa = np.random.beta(alpha, alpha)
             self.broadcast_meta(beta = beta, lambdaa=lambdaa)
-
             if self.params['weighting'] == 'uniform':
                 weights = [1 for idx in idxs_users]
             else : weights = [self.clients[idx].get_test_acc() for idx in idxs_users]
-            
             all_soft_labels, global_soft_labels = Aggregator.aggregate_soft_labels(self.clients, idxs_users, weights = weights, compress = True)
             self.broadcast(global_soft_labels)
             for idx in idxs_users:
                 self.clients[idx].digest()
+
         elif self.params['aggregate'] == 'weights':
             if self.params['weighting'] == 'uniform':
                 weights = [1 for idx in idxs_users]
@@ -883,12 +913,11 @@ class FLServer(nn.Module):
             
             all_weights, global_weights = Aggregator.aggregate_weights(self.clients, idxs_users, weights = weights) 
             self.broadcast(global_weights)
+
         else : 
             raise NotImplementedError
         
-        for idx in idxs_users:
-            self.clients[idx].local_update()
-        
+
 
         all_accs = [self.clients[idx].get_test_acc() for idx in idxs_users]
         all_train_accs = [self.clients[idx].get_train_acc() for idx in idxs_users]

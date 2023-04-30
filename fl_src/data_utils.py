@@ -22,7 +22,7 @@ from sklearn.preprocessing import LabelEncoder
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
-
+from PIL import Image
 
 
 def get_dataset(dataset_name, n_pub_sets = 1) :
@@ -586,11 +586,13 @@ class HARDataset(Dataset):
     idx = idx % len(self.data)
     data = self.data[idx].astype(np.float32)
     label = self.labels[idx].astype(np.float32)
+    data = Image.fromarray((data * 255).astype('uint8')) # Convert NumPy array to PIL Image
     if self.transform:
         data = self.transform(data)
     if self.target_transform:
         label = self.target_transform(label)
     return data, label
+
 
 
 
