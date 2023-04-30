@@ -460,13 +460,15 @@ class FLClient(nn.Module) :
         #     self.local_dl = DataLoader(train_dataset, batch_size = self.best_bs, shuffle = True)
         
 
-    def local_benchmark(self, save_results = True) :
+    def local_benchmark(self, save_results = True, verbose = False) :
         self.local_model = get_heterogeneous_model(self.client_id, self.local_set[0].shape, n_classes = self.local_set[1].shape[-1])
         self.local_optimizer = optim.SGD(self.local_model.parameters(), lr=self.best_lr)
 
         for epoch in range(self.params['local_benchmark_epochs']) : 
             _, _ = train(self.local_model, self.local_dl, self.local_optimizer, None, None, None, False)
             test_acc, test_loss = test(self.local_model, self.test_dl, None, None, None, False)
+            if verbose :
+                print("Epoch {} : test acc = {:.2f}%, test loss = {:.4f}".format(epoch, test_acc, test_loss))
             if save_results: 
                 self.local_accs.append(test_acc)
                 self.local_losses.append(test_loss)
