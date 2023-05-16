@@ -1,602 +1,336 @@
+import pickle
+import os
 
-
-import sys 
-import os 
+import numpy as np
 import pandas as pd
-import numpy as np 
-sys.path.append('..')
-
-# from data.depth_dataset import data_pre as depth_pre
-# from data.large_scale_HARBox import data_pre as harbox_pre
-# from data.imu_dataset import data_pre as imu_pre
-
-import torch
-import torch.utils.data as torch_data
-import torchvision.transforms as transforms
-from torchvision.datasets import CIFAR10, CIFAR100, MNIST, FashionMNIST
-import torchvision
-from torch.utils.data import Dataset, DataLoader
-from tensorflow.keras.utils import to_categorical
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.preprocessing import LabelEncoder
-import tensorflow as tf
-from sklearn.model_selection import train_test_split
-
-from PIL import Image
+from sklearn.model_selection import StratifiedShuffleSplit
+from tensorflow.keras.datasets import cifar10, cifar100, mnist
+import scipy.io as sio
 
 
-def get_dataset(dataset_name, n_pub_sets = 1) :
-
-    central_test_set, central_train_set = None, None
-    if dataset_name == 'depth': 
-        train_sets, test_sets = get_depth_data(onehot=True, as_torch_dataset=False) 
-        public_set = (np.concatenate([train_sets[i][0] for i in range(n_pub_sets)]), np.concatenate([train_sets[i][1] for i in range(n_pub_sets)]))
-        local_sets = [train_sets[i] for i in range(n_pub_sets, len(train_sets))]
-        test_sets  = [test_sets[i] for i in range(n_pub_sets, len(test_sets))]
-        try : 
-            central_train_set = (np.concatenate([train_sets[i][0] for i in range(n_pub_sets, len(local_sets))]), np.concatenate([train_sets[i][1] for i in range(n_pub_sets, len(local_sets))]))
-            central_test_set = (np.concatenate([test_sets[i][0] for i in range(n_pub_sets, len(test_sets))]), np.concatenate([test_sets[i][1] for i in range(n_pub_sets, len(test_sets))]))        
-        except :
-            print("could not concatenate train/test sets")
-            print("n_pub_sets = ", n_pub_sets, " len(local_sets) = ", len(local_sets))
-        
-        return central_train_set, central_test_set, public_set, local_sets, test_sets
-
-    elif dataset_name == 'hars':
-        (pri_x_list, pri_y_list), (pri_x_total, pri_y_total), (x_test, y_test_cat), (pub_x, pub_y_cat), original_labels = get_hars_data(n_parties = 9, n_samples_per_class= 200)
-        public_set = (pub_x, pub_y_cat)
-        local_sets = [(pri_x_list[i], pri_y_list[i]) for i in range(len(pri_x_list))]
-        test_sets  = [(x_test, y_test_cat) for i in range(len(pri_x_list))]
-        central_train_set = (pri_x_total, pri_y_total)
-        central_test_set = (x_test, y_test_cat)
-        return central_train_set, central_test_set, public_set, local_sets, test_sets
-        
-    elif dataset_name == 'harbox':
-        train_sets, test_sets = get_harbox_data(data_dir = '../data/large_scale_HARBox', onehot=True, as_torch_dataset=False)
-        public_set = (np.concatenate([train_sets[i][0] for i in range(n_pub_sets)]), np.concatenate([train_sets[i][1] for i in range(n_pub_sets)]))
-        local_sets = [train_sets[i] for i in range(n_pub_sets, len(train_sets))]
-        test_sets  = [test_sets[i] for i in range(n_pub_sets, len(test_sets))]
-        try : 
-            central_train_set = (np.concatenate([train_sets[i][0] for i in range(n_pub_sets, len(local_sets))]), np.concatenate([train_sets[i][1] for i in range(n_pub_sets, len(local_sets))]))
-            central_test_set = (np.concatenate([test_sets[i][0] for i in range(n_pub_sets, len(test_sets))]), np.concatenate([test_sets[i][1] for i in range(n_pub_sets, len(test_sets))]))        
-        except :
-            print("could not concatenate train/test sets")
-            print("n_pub_sets = ", n_pub_sets, " len(local_sets) = ", len(local_sets))
-        
-        return central_train_set, central_test_set, public_set, local_sets, test_sets
+def load_MNIST_data(standarized = False, verbose = False):
+    (X_train, y_train), (X_test, y_test) = mnist.load_data()
     
-    elif dataset_name == 'imu':
-        train_sets, test_sets = get_imu_data(data_dir = '../data/imu_dataset', onehot=True, as_torch_dataset=False)
-        public_set = (np.concatenate([train_sets[i][0] for i in range(n_pub_sets)]), np.concatenate([train_sets[i][1] for i in range(n_pub_sets)]))
-        local_sets = [train_sets[i] for i in range(n_pub_sets, len(train_sets))]
-        test_sets  = [test_sets[i] for i in range(n_pub_sets, len(test_sets))]
-        try : 
-            central_train_set = (np.concatenate([train_sets[i][0] for i in range(n_pub_sets, len(local_sets))]), np.concatenate([train_sets[i][1] for i in range(n_pub_sets, len(local_sets))]))
-            central_test_set = (np.concatenate([test_sets[i][0] for i in range(n_pub_sets, len(test_sets))]), np.concatenate([test_sets[i][1] for i in range(n_pub_sets, len(test_sets))]))        
-        except :
-            print("could not concatenate train/test sets")
-            print("n_pub_sets = ", n_pub_sets, " len(local_sets) = ", len(local_sets))
-        
-        return central_train_set, central_test_set, public_set, local_sets, test_sets
+    if standarized: 
+        X_train = X_train/255
+        X_test = X_test/255
+        mean_image = np.mean(X_train, axis=0)
+        X_train -= mean_image
+        X_test -= mean_image
+    
+    if verbose == True: 
+        print("MNIST dataset ... ")
+        print("X_train shape :", X_train.shape)
+        print("X_test shape :", X_test.shape)
+        print("y_train shape :", y_train.shape)
+        print("y_test shape :", y_test.shape)
+    
+    return X_train, y_train, X_test, y_test
 
-    elif dataset_name == 'cifar100':
 
-        pass
+def load_EMNIST_data(file, verbose = False, standarized = False):
+    """
+    file should be the downloaded EMNIST file in .mat format.
+    """    
+    mat = sio.loadmat(file)
+    data = mat["dataset"]
+    
+    
+    
+    writer_ids_train = data['train'][0,0]['writers'][0,0]
+    writer_ids_train = np.squeeze(writer_ids_train)
+    X_train = data['train'][0,0]['images'][0,0]
+    X_train = X_train.reshape((X_train.shape[0], 28, 28), order = "F")
+    y_train = data['train'][0,0]['labels'][0,0]
+    y_train = np.squeeze(y_train)
+    y_train -= 1 #y_train is zero-based
+    
+    writer_ids_test = data['test'][0,0]['writers'][0,0]
+    writer_ids_test = np.squeeze(writer_ids_test)
+    X_test = data['test'][0,0]['images'][0,0]
+    X_test= X_test.reshape((X_test.shape[0], 28, 28), order = "F")
+    y_test = data['test'][0,0]['labels'][0,0]
+    y_test = np.squeeze(y_test)
+    y_test -= 1 #y_test is zero-based
 
+    
+    if standarized: 
+        X_train = X_train/255
+        X_test = X_test/255
+        mean_image = np.mean(X_train, axis=0)
+        X_train -= mean_image
+        X_test -= mean_image
+    
+
+    if verbose == True: 
+        print("EMNIST-letter dataset ... ")
+        print("X_train shape :", X_train.shape)
+        print("X_test shape :", X_test.shape)
+        print("y_train shape :", y_train.shape)
+        print("y_test shape :", y_test.shape)
+    
+    return X_train, y_train, X_test, y_test, writer_ids_train, writer_ids_test
+
+
+def load_CIFAR_data(data_type="CIFAR10", label_mode="fine",
+                    standarized = False, verbose = False):    
+    if data_type == "CIFAR10":
+        (X_train, y_train), (X_test, y_test) = cifar10.load_data()
+    elif data_type == "CIFAR100":
+        (X_train, y_train), (X_test, y_test) = cifar100.load_data(label_mode = label_mode)
     else:
-        raise NotImplementedError
-
-
-
-
-
-
-
-
-
-
-def get_hars_data(n_parties, n_samples_per_class, dataset_dir = None, include_classes = 'all') : 
-
-    if dataset_dir is None : 
-        dataset_dir = '../data/HARS'
+        print("Unknown Data type. Stopped!")
+        return None
+      
+    
+    y_train = np.squeeze(y_train)
+    y_test = np.squeeze(y_test)
+    # substract mean and normalized to [-1/2,1/2]
+    if standarized: 
+        X_train = X_train/255
+        X_test = X_test/255
+        mean_image = np.mean(X_train, axis=0)
+        X_train -= mean_image
+        X_test -= mean_image
         
-    test_data = pd.read_csv(os.path.join(dataset_dir,'test.csv'))
-    train_data = pd.read_csv(os.path.join(dataset_dir,'train.csv'))
-
-    train_data = train_data.sample(frac = 1.0)
-
-    train_data_len = int(0.9 * len(train_data) ) 
-    train_data, public_data = train_data.iloc[:train_data_len], train_data.iloc[train_data_len:]
-
-    # Eliminate last two columns from the x data ('subject', 'label') 
-    x_train, y_train = train_data.iloc[:, :-2], train_data.iloc[:, -1:] 
-    x_test, y_test = test_data.iloc[:, :-2], test_data.iloc[:, -1:]
-
-
-    pub_x, pub_y = public_data.iloc[:, :-2], public_data.iloc[:, -1:]
-
-
-    le = LabelEncoder()
-    y_train = le.fit_transform(y_train)
-    y_test = le.transform(y_test)
-    pub_y = le.transform(pub_y) 
-
-    scaling_data = MinMaxScaler()
-    x_train = scaling_data.fit_transform(x_train)
-    x_test = scaling_data.transform(x_test)
-    pub_x = scaling_data.transform(pub_x) 
-
-    n_classes = len(le.classes_)
-    original_labels = le.classes_
-
-    if n_parties == 0 : 
-        return (x_train, y_train), (x_test, y_test)
-
-    pri_x_list, pri_y_list, pri_x_total, pri_y_total  = split_dataset(x_train, y_train, original_labels, include_classes = include_classes, samples_per_class = n_samples_per_class ,\
-                                                                    n_models = n_parties, to_categorical = True) 
-    y_train_cat = to_categorical(y_train, num_classes = n_classes)
-    y_test_cat = to_categorical(y_test, num_classes = n_classes)
-    pub_y_cat = to_categorical(pub_y, num_classes = n_classes)
-
-    return (pri_x_list, pri_y_list), (pri_x_total, pri_y_total), (x_test, y_test_cat), (pub_x, pub_y_cat), original_labels 
-
-
-def get_hars_dataloader(data_dir, batchsize): 
-    (X_train, y_train), (X_test, y_test) = get_hars_data(data_dir, n_parties = 0, n_samples_per_class = 0, include_classes = 'all')
-    y_train = tf.keras.utils.to_categorical(y_train, num_classes = 6)
-    y_test = tf.keras.utils.to_categorical(y_test, num_classes = 6)
-    trainloader = torch.utils.data.DataLoader(torch_data.TensorDataset(torch.from_numpy(X_train), torch.from_numpy(y_train)), batch_size=batchsize, shuffle=True)
-    testloader = torch.utils.data.DataLoader(torch_data.TensorDataset(torch.from_numpy(X_test), torch.from_numpy(y_test)), batch_size=batchsize, shuffle=False)
-    return trainloader, testloader
-
-
-def get_depth_data(onehot = True, as_torch_dataset = False): 
     
-    temp_n_parties = 9
-    x_train, y_train, x_test, y_test = [], [], [], []
-    for user_id in range(temp_n_parties):
-        x_train_i, y_train_i = depth_pre.load_depth_data_train(user_id)
-        # add channel dimension
-        x_train_i = np.expand_dims(x_train_i, axis = -1) 
-        x_train.append(x_train_i)
-        y_train.append(y_train_i)
-
-    for user_id in range(temp_n_parties):
-        x_test_i, y_test_i = depth_pre.load_depth_data_test(user_id)
-        # add channel dimension
-        x_test_i = np.expand_dims(x_test_i, axis = -1)
-        x_test.append(x_test_i)
-        y_test.append(y_test_i)
     
-    if onehot :
-        y_train, y_test = [to_categorical(y_train[i], num_classes = 5) for i in range(9)], [to_categorical(y_test[i], num_classes = 5) for i in range(9)]
- 
-    if as_torch_dataset :
-        return [HARDataset(x_train[i], y_train[i]) for i in range(temp_n_parties)], [HARDataset(x_test[i], y_test[i]) for i in range(temp_n_parties)]
-    else :
-        return [(x_train[i], y_train[i]) for i in range(temp_n_parties)], [(x_test[i], y_test[i]) for i in range(temp_n_parties)]
-
+    if verbose == True: 
+        print("X_train shape :", X_train.shape)
+        print("X_test shape :", X_test.shape)
+        print("y_train shape :", y_train.shape)
+        print("y_test shape :", y_test.shape)
     
-def get_harbox_data(data_dir, onehot=True, as_torch_dataset=False): 
+    return X_train, y_train, X_test, y_test
 
-    x_train, y_train, x_test, y_test = [], [], [], []
-    for user_id in range(1, harbox_pre.NUM_OF_TOTAL_USERS + 1):
-        x_train_i, y_train_i, _, _ = harbox_pre.load_data(data_dir, user_id)
-        x_train_i, x_test_i, y_train_i, y_test_i = train_test_split(x_train_i, y_train_i, test_size=0.3, random_state=42)
-        x_train.append(x_train_i)
-        y_train.append(y_train_i)
-        x_test.append(x_test_i)
-        y_test.append(y_test_i)
-
-    if onehot :
-        y_train, y_test = [to_categorical(y_train[i], num_classes = harbox_pre.NUM_OF_CLASS) for i in range(harbox_pre.NUM_OF_TOTAL_USERS)], [to_categorical(y_test[i], num_classes = harbox_pre.NUM_OF_CLASS) for i in range(harbox_pre.NUM_OF_TOTAL_USERS)]
-
-    if as_torch_dataset :
-        return [HARDataset(x_train[i], y_train[i]) for i in range(harbox_pre.NUM_OF_TOTAL_USERS)], [HARDataset(x_test[i], y_test[i]) for i in range(harbox_pre.NUM_OF_TOTAL_USERS)]
-    else :
-        return [(x_train[i], y_train[i]) for i in range(harbox_pre.NUM_OF_TOTAL_USERS)], [(x_test[i], y_test[i]) for i in range(harbox_pre.NUM_OF_TOTAL_USERS)]
-
-
+def load_CIFAR_from_local(local_dir, data_type="CIFAR10", with_coarse_label = False, 
+                          standarized = False, verbose = False):
+    #dir_name = os.path.abspath(local_dir)
+    if data_type == "CIFAR10":
+        X_train, y_train = [], [] 
+        for i in range(1, 6, 1):
+            file_name = None
+            file_name = os.path.join(local_dir + "data_batch_{0}".format(i))
+            X_tmp, y_tmp = None, None
+            with open(file_name, 'rb') as fo:
+                datadict = pickle.load(fo, encoding='bytes')
+            
+            X_tmp = datadict[b'data']
+            y_tmp = datadict[b'labels']
+            X_tmp = X_tmp.reshape(10000, 3, 32, 32).transpose(0,2,3,1).astype("float")
+            y_tmp = np.array(y_tmp)
+            
+            X_train.append(X_tmp)
+            y_train.append(y_tmp)
+            del X_tmp, y_tmp
+        X_train = np.vstack(X_train)
+        y_train = np.hstack(y_train)
+        
+        file_name = None
+        file_name = os.path.join(local_dir + "test_batch")
+        with open(file_name, 'rb') as fo:
+            datadict = pickle.load(fo, encoding='bytes')
+            
+            X_test = datadict[b'data']
+            y_test = datadict[b'labels']
+            X_test = X_test.reshape(10000, 3, 32, 32).transpose(0,2,3,1).astype("float")
+            y_test = np.array(y_test)
+            
+            
+    elif data_type == "CIFAR100":
+        file_name = None 
+        file_name = os.path.abspath(local_dir + "train")
+        with open(file_name, 'rb') as fo:
+            datadict = pickle.load(fo, encoding='bytes')
+            X_train = datadict[b'data']
+            if with_coarse_label:
+                y_train = datadict[b'coarse_labels']
+            else:
+                y_train = datadict[b'fine_labels']
+            X_train = X_train.reshape(50000, 3, 32, 32).transpose(0,2,3,1).astype("float")
+            y_train = np.array(y_train)
+        
+        file_name = None 
+        file_name = os.path.join(local_dir + "test")
+        with open(file_name, 'rb') as fo:
+            datadict = pickle.load(fo, encoding='bytes')
+            X_test = datadict[b'data']
+            if with_coarse_label:
+                y_test = datadict[b'coarse_labels']
+            else:
+                y_test = datadict[b'fine_labels']
+            X_test = X_test.reshape(10000, 3, 32, 32).transpose(0,2,3,1).astype("float")
+            y_test = np.array(y_test)
+        
+    else:
+        print("Unknown Data type. Stopped!")
+        return None   
     
-def get_imu_data(data_dir, onehot=True, as_torch_dataset=False): 
-
-    x_train, y_train, x_test, y_test = [], [], [], []
-    for user_id in range(imu_pre.NUM_OF_TOTAL_USERS):
-        x_train_i, y_train_i, _ = imu_pre.load_data(data_dir, user_id)
-        x_train_i, x_test_i, y_train_i, y_test_i = train_test_split(x_train_i, y_train_i, test_size=0.3, random_state=42)
-        x_train.append(x_train_i)
-        y_train.append(y_train_i)
-        x_test.append(x_test_i)
-        y_test.append(y_test_i)
-
-    if onehot :
-        y_train, y_test = [to_categorical(y_train[i], num_classes = imu_pre.NUM_OF_CLASS) for i in range(imu_pre.NUM_OF_TOTAL_USERS)], [to_categorical(y_test[i], num_classes = imu_pre.NUM_OF_CLASS) for i in range(imu_pre.NUM_OF_TOTAL_USERS)]
-
-    if as_torch_dataset :
-        return [HARDataset(x_train[i], y_train[i]) for i in range(imu_pre.NUM_OF_TOTAL_USERS)], [HARDataset(x_test[i], y_test[i]) for i in range(imu_pre.NUM_OF_TOTAL_USERS)]
-    else :
-        return [(x_train[i], y_train[i]) for i in range(imu_pre.NUM_OF_TOTAL_USERS)], [(x_test[i], y_test[i]) for i in range(imu_pre.NUM_OF_TOTAL_USERS)]
+    if standarized: 
+        X_train = X_train/255
+        X_test = X_test/255
+        mean_image = np.mean(X_train, axis=0)
+        X_train -= mean_image
+        X_test -= mean_image
+    
+    if verbose == True: 
+        print("X_train shape :", X_train.shape)
+        print("X_test shape :", X_test.shape)
+        print("y_train shape :", y_train.shape)
+        print("y_test shape :", y_test.shape)
+        
+    return X_train, y_train, X_test, y_test
 
 
 
 
-
-def get_dataloader_from_numpy(x, y, batch_size = 32, shuffle = True) : 
-    x = torch.from_numpy(x)
-    y = torch.from_numpy(y)
-    dataset = torch_data.TensorDataset(x, y)
-    dataloader = torch_data.DataLoader(dataset, batch_size = batch_size, shuffle = shuffle)
-    return dataloader
-
-
-
-
-
-
+def generate_partial_data(X, y, class_in_use = None, verbose = False):
+    if class_in_use is None:
+        idx = np.ones_like(y, dtype = bool)
+    else:
+        idx = [y == i for i in class_in_use]
+        idx = np.any(idx, axis = 0)
+    X_incomplete, y_incomplete = X[idx], y[idx]
+    if verbose == True:
+        print("X shape :", X_incomplete.shape)
+        print("y shape :", y_incomplete.shape)
+    return X_incomplete, y_incomplete
 
 
 
-
-
-
-
-def split_dataset(x, y, original_labels, samples_per_class, n_models, include_classes, to_categorical = False) : 
-    datasets = [None]*n_models 
-    labels = [None]*n_models 
-
-    sample_indecies = [None]*n_models 
-    n_classes = len(original_labels)
-    combined_idx = np.array([], dtype = np.int16) 
-     
-    all_classes = list(np.arange(n_classes))
-
-    for label in all_classes :
-        idx = np.where(y == label)[0]
-        idx = np.random.choice(idx, samples_per_class*n_models, replace = True) 
+def generate_bal_private_data(X, y, N_parties = 10, classes_in_use = range(11), 
+                              N_samples_per_class = 20, data_overlap = False):
+    """
+    Input: 
+    -- N_parties : int, number of collaboraters in this activity;
+    -- classes_in_use: array or generator, the classes of EMNIST-letters dataset 
+    (0 <= y <= 25) to be used as private data; 
+    -- N_sample_per_class: int, the number of private data points of each class for each party
+    
+    return: 
+    
+    """
+    priv_data = [None] * N_parties
+    combined_idx = np.array([], dtype = np.int16)
+    for cls in classes_in_use:
+        idx = np.where(y == cls)[0]
+        idx = np.random.choice(idx, N_samples_per_class * N_parties, 
+                               replace = data_overlap)
         combined_idx = np.r_[combined_idx, idx]
-        for i in range(n_models) :
-            if include_classes != 'all' : 
-                if label not in include_classes[i] :
-                    continue
-            if datasets[i] is None :
-                datasets[i] = [x[idx[i*samples_per_class : (i+1)*samples_per_class]]]
-                labels[i] = [y[idx[i*samples_per_class : (i+1)*samples_per_class]]]
-            else : 
-                datasets[i].append( x[idx[i*samples_per_class : (i+1)*samples_per_class]])
-                labels[i].append(y[idx[i*samples_per_class : (i+1)*samples_per_class]])
-  
-    for i in range(n_models) : 
-        datasets[i] = np.concatenate(datasets[i])
-        labels[i] = np.concatenate(labels[i])
-    
-
-    total_datasets = x[combined_idx]
-    total_labels = y[combined_idx]
-
-    
-    if to_categorical : 
-        for i, l in enumerate(labels): 
-            labels[i] = tf.keras.utils.to_categorical(l, num_classes = n_classes)       
-        total_labels = tf.keras.utils.to_categorical(total_labels, num_classes = n_classes)
-    
-    return datasets, labels, total_datasets, total_labels 
-
-
-
-
-
-
-#________________________________________________________________________
-
-
-
-def partition_data(dataset, datadir, partition, n_parties, beta=0.4):
-    if dataset == 'cifar10':
-        X_train, y_train, X_test, y_test = load_cifar10_data(datadir)
-    elif dataset == 'cifar100':
-        X_train, y_train, X_test, y_test = load_cifar100_data(datadir)
-    elif dataset == 'tinyimagenet':
-        X_train, y_train, X_test, y_test = load_tinyimagenet_data(datadir)
-
-    n_train = y_train.shape[0]
-
-    if partition == "homo" or partition == "iid":
-        idxs = np.random.permutation(n_train)
-        batch_idxs = np.array_split(idxs, n_parties)
-        net_dataidx_map = {i: batch_idxs[i] for i in range(n_parties)}
-
-
-    elif partition == "noniid-labeldir" or partition == "noniid":
-        min_size = 0
-        min_require_size = 10
-        K = 10
-        if dataset == 'cifar100':
-            K = 100
-        elif dataset == 'tinyimagenet':
-            K = 200
-            # min_require_size = 100
-
-        N = y_train.shape[0]
-        net_dataidx_map = {}
-
-        while min_size < min_require_size:
-            idx_batch = [[] for _ in range(n_parties)]
-            for k in range(K):
-                idx_k = np.where(y_train == k)[0]
-                np.random.shuffle(idx_k)
-                proportions = np.random.dirichlet(np.repeat(beta, n_parties))
-                proportions = np.array([p * (len(idx_j) < N / n_parties) for p, idx_j in zip(proportions, idx_batch)])
-                proportions = proportions / proportions.sum()
-                proportions = (np.cumsum(proportions) * len(idx_k)).astype(int)[:-1]
-                idx_batch = [idx_j + idx.tolist() for idx_j, idx in zip(idx_batch, np.split(idx_k, proportions))]
-                min_size = min([len(idx_j) for idx_j in idx_batch])
-                # if K == 2 and n_parties <= 10:
-                #     if np.min(proportions) < 200:
-                #         min_size = 0
-                #         break
-
-        for j in range(n_parties):
-            np.random.shuffle(idx_batch[j])
-            net_dataidx_map[j] = idx_batch[j]
-
-
-    return (X_train, y_train, X_test, y_test, net_dataidx_map)
-
-
-
-def get_cifar10_dataloader(datadir, batchsize) : 
-    (X_train, y_train, X_test, y_test) = load_cifar10_data(datadir)
-    trainloader = torch.utils.data.DataLoader(torch_data.TensorDataset(torch.from_numpy(X_train), torch.from_numpy(y_train)), batch_size=batchsize, shuffle=True)
-    testloader = torch.utils.data.DataLoader(torch_data.TensorDataset(torch.from_numpy(X_test), torch.from_numpy(y_test)), batch_size=batchsize, shuffle=False)
-    return trainloader, testloader
-
-def load_cifar10_data(datadir, fraction = 1.0):
-    transform = transforms.Compose([transforms.ToTensor()])
-
-    cifar10_train_ds = CIFAR10_truncated(datadir, train=True, download=True, transform=transform)
-    cifar10_test_ds = CIFAR10_truncated(datadir, train=False, download=True, transform=transform)
-
-    X_train, y_train = cifar10_train_ds.data, cifar10_train_ds.target
-    X_test, y_test = cifar10_test_ds.data, cifar10_test_ds.target
-    
-    # permute data 
-    sample_size = (fraction*len(X_train))
-    idx_train = np.random.permutation(len(X_train))
-    idx_test = np.random.permutation(len(X_test))
-
-    X_train = X_train[idx_train[:int(sample_size)]]
-    y_train = y_train[idx_train[:int(sample_size)]]
-    X_test = X_test[idx_test[:int(sample_size)]]
-    y_test = y_test[idx_test[:int(sample_size)]]
-
-
-    return (X_train, y_train, X_test, y_test)
-
-
-
-class CIFAR10_truncated(torch_data.Dataset):
-
-    def __init__(self, root, dataidxs=None, train=True, transform=None, target_transform=None, download=False):
-
-        self.root = root
-        self.dataidxs = dataidxs
-        self.train = train
-        self.transform = transform
-        self.target_transform = target_transform
-        self.download = download
-
-        self.data, self.target = self.__build_truncated_dataset__()
-
-    def __build_truncated_dataset__(self):
-
-        cifar_dataobj = CIFAR10(self.root, self.train, self.transform, self.target_transform, self.download)
-
-        if torchvision.__version__ == '0.2.1':
-            if self.train:
-                data, target = cifar_dataobj.train_data, np.array(cifar_dataobj.train_labels)
+        for i in range(N_parties):           
+            idx_tmp = idx[i * N_samples_per_class : (i + 1)*N_samples_per_class]
+            if priv_data[i] is None:
+                tmp = {}
+                tmp["X"] = X[idx_tmp]
+                tmp["y"] = y[idx_tmp]
+                tmp["idx"] = idx_tmp
+                priv_data[i] = tmp
             else:
-                data, target = cifar_dataobj.test_data, np.array(cifar_dataobj.test_labels)
-        else:
-            data = cifar_dataobj.data
-            target = np.array(cifar_dataobj.targets)
-
-        if self.dataidxs is not None:
-            data = data[self.dataidxs]
-            target = target[self.dataidxs]
-
-        return data, target
-
-    def truncate_channel(self, index):
-        for i in range(index.shape[0]):
-            gs_index = index[i]
-            self.data[gs_index, :, :, 1] = 0.0
-            self.data[gs_index, :, :, 2] = 0.0
-
-    def __getitem__(self, index):
-        """
-        Args:
-            index (int): Index
-
-        Returns:
-            tuple: (image, target) where target is index of the target class.
-        """
-        img, target = self.data[index], self.target[index]
-        # img = Image.fromarray(img)
-        # print("cifar10 img:", img)
-        # print("cifar10 target:", target)
-
-        if self.transform is not None:
-            img = self.transform(img)
-
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-
-        return img, target
-
-    def __len__(self):
-        return len(self.data)
-
-def load_cifar100_data(datadir):
-    transform = transforms.Compose([transforms.ToTensor()])
-
-    cifar100_train_ds = CIFAR100_truncated(datadir, train=True, download=True, transform=transform)
-    cifar100_test_ds = CIFAR100_truncated(datadir, train=False, download=True, transform=transform)
-
-    X_train, y_train = cifar100_train_ds.data, cifar100_train_ds.target
-    X_test, y_test = cifar100_test_ds.data, cifar100_test_ds.target
-
-    # y_train = y_train.numpy()
-    # y_test = y_test.numpy()
-
-    return (X_train, y_train, X_test, y_test)
+                priv_data[i]['idx'] = np.r_[priv_data[i]["idx"], idx_tmp]
+                priv_data[i]["X"] = np.vstack([priv_data[i]["X"], X[idx_tmp]])
+                priv_data[i]["y"] = np.r_[priv_data[i]["y"], y[idx_tmp]]
+                
+                
+    total_priv_data = {}
+    total_priv_data["idx"] = combined_idx
+    total_priv_data["X"] = X[combined_idx]
+    total_priv_data["y"] = y[combined_idx]
+    return priv_data, total_priv_data
 
 
+def generate_alignment_data(X, y, N_alignment = 3000):
+    
+    split = StratifiedShuffleSplit(n_splits=1, train_size= N_alignment)
+    if N_alignment == "all":
+        alignment_data = {}
+        alignment_data["idx"] = np.arange(y.shape[0])
+        alignment_data["X"] = X
+        alignment_data["y"] = y
+        return alignment_data
+    for train_index, _ in split.split(X, y):
+        X_alignment = X[train_index]
+        y_alignment = y[train_index]
+    alignment_data = {}
+    alignment_data["idx"] = train_index
+    alignment_data["X"] = X_alignment
+    alignment_data["y"] = y_alignment
+    
+    return alignment_data
 
-class CIFAR10_truncated(Dataset):
-
-    def __init__(self, root, dataidxs=None, train=True, transform=None, target_transform=None, download=False):
-
-        self.root = root
-        self.dataidxs = dataidxs
-        self.train = train
-        self.transform = transform
-        self.target_transform = target_transform
-        self.download = download
-
-        self.data, self.target = self.__build_truncated_dataset__()
-
-    def __build_truncated_dataset__(self):
-
-        cifar_dataobj = CIFAR10(self.root, self.train, self.transform, self.target_transform, self.download)
-
-        if torchvision.__version__ == '0.2.1':
-            if self.train:
-                data, target = cifar_dataobj.train_data, np.array(cifar_dataobj.train_labels)
-            else:
-                data, target = cifar_dataobj.test_data, np.array(cifar_dataobj.test_labels)
-        else:
-            data = cifar_dataobj.data
-            target = np.array(cifar_dataobj.targets)
-
-        if self.dataidxs is not None:
-            data = data[self.dataidxs]
-            target = target[self.dataidxs]
-
-        return data, target
-
-    def truncate_channel(self, index):
-        for i in range(index.shape[0]):
-            gs_index = index[i]
-            self.data[gs_index, :, :, 1] = 0.0
-            self.data[gs_index, :, :, 2] = 0.0
-
-    def __getitem__(self, index):
-        """
-        Args:
-            index (int): Index
-        Returns:
-            tuple: (image, target) where target is index of the target class.
-        """
-        img, target = self.data[index], self.target[index]
-        # img = Image.fromarray(img)
-        # print("cifar10 img:", img)
-        # print("cifar10 target:", target)
-
-        if self.transform is not None:
-            img = self.transform(img)
-
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-
-        return img, target
-
-    def __len__(self):
-        return len(self.data)
-
-
-class CIFAR100_truncated(Dataset):
-
-    def __init__(self, root, dataidxs=None, train=True, transform=None, target_transform=None, download=False):
-
-        self.root = root
-        self.dataidxs = dataidxs
-        self.train = train
-        self.transform = transform
-        self.target_transform = target_transform
-        self.download = download
-
-        self.data, self.target = self.__build_truncated_dataset__()
-
-    def __build_truncated_dataset__(self):
-
-        cifar_dataobj = CIFAR100(self.root, self.train, self.transform, self.target_transform, self.download)
-
-        if torchvision.__version__ == '0.2.1':
-            if self.train:
-                data, target = cifar_dataobj.train_data, np.array(cifar_dataobj.train_labels)
-            else:
-                data, target = cifar_dataobj.test_data, np.array(cifar_dataobj.test_labels)
-        else:
-            data = cifar_dataobj.data
-            target = np.array(cifar_dataobj.targets)
-
-        if self.dataidxs is not None:
-            data = data[self.dataidxs]
-            target = target[self.dataidxs]
-
-        return data, target
-
-    def __getitem__(self, index):
-        """
-        Args:
-            index (int): Index
-        Returns:
-            tuple: (image, target) where target is index of the target class.
-        """
-        img, target = self.data[index], self.target[index]
-        img = Image.fromarray(img)
-        # print("cifar10 img:", img)
-        # print("cifar10 target:", target)
-
-        if self.transform is not None:
-            img = self.transform(img)
-
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-
-        return img, target
-
-    def __len__(self):
-        return len(self.data)
+def generate_EMNIST_writer_based_data(X, y, writer_info, N_priv_data_min = 30, 
+                                      N_parties = 5, classes_in_use = range(6)):
+    
+    # mask is a boolean array of the same shape as y
+    # mask[i] = True if y[i] in classes_in_use
+    mask = None
+    mask = [y == i for i in classes_in_use]
+    mask = np.any(mask, axis = 0)
+    
+    df_tmp = None
+    df_tmp = pd.DataFrame({"writer_ids": writer_info, "is_in_use": mask})
+    #print(df_tmp.head())
+    groupped = df_tmp[df_tmp["is_in_use"]].groupby("writer_ids")
+    
+    # organize the input the data (X,y) by writer_ids.
+    # That is, 
+    # data_by_writer is a dictionary where the keys are writer_ids,
+    # and the contents are the correcponding data. 
+    # Notice that only data with labels in class_in_use are included.
+    data_by_writer = {}
+    writer_ids = []
+    for wt_id, idx in groupped.groups.items():
+        if len(idx) >= N_priv_data_min:  
+            writer_ids.append(wt_id)
+            data_by_writer[wt_id] = {"X": X[idx], "y": y[idx], 
+                                     "idx": idx, "writer_id": wt_id}
+            
+    # each participant in the collaborative group is assigned data 
+    # from a single writer.
+    ids_to_use = np.random.choice(writer_ids, size = N_parties, replace = False)
+    combined_idx = np.array([], dtype = np.int64)
+    private_data = []
+    for i in range(N_parties):
+        id_tmp = ids_to_use[i]
+        private_data.append(data_by_writer[id_tmp])
+        combined_idx = np.r_[combined_idx, data_by_writer[id_tmp]["idx"]]
+        del id_tmp
+    
+    total_priv_data = {}
+    total_priv_data["idx"] = combined_idx
+    total_priv_data["X"] = X[combined_idx]
+    total_priv_data["y"] = y[combined_idx]
+    return private_data, total_priv_data
 
 
+def generate_imbal_CIFAR_private_data(X, y, y_super, classes_per_party, N_parties,
+                                      samples_per_class=7):
 
-
-class HARDataset(Dataset):
-  def __init__(self, data, labels, transform=None, target_transform=None):
-    self.data = data
-    self.labels = labels
-    self.transform = transform
-    self.target_transform = target_transform
-
-  def __len__(self):
-    return len(self.data)
-
-  def __getitem__(self, idx):
-    idx = idx % len(self.data)
-    data = self.data[idx].astype(np.float32)
-    label = self.labels[idx].astype(np.float32)
-    data = Image.fromarray((data * 255).astype('uint8')) # Convert NumPy array to PIL Image
-    if self.transform:
-        data = self.transform(data)
-    if self.target_transform:
-        label = self.target_transform(label)
-    return data, label
-
-
-
-
-if __name__ == "__main__" : 
-    dataset = 'depth' 
-    central_train_set, central_test_set, public_set, local_sets, test_sets = get_dataset(dataset)
-    print(central_train_set[0].shape)
+    priv_data = [None] * N_parties
+    combined_idxs = []
+    count = 0
+    for subcls_list in classes_per_party:
+        idxs_per_party = []
+        for c in subcls_list:
+            idxs = np.flatnonzero(y == c)
+            idxs = np.random.choice(idxs, samples_per_class, replace=False)
+            idxs_per_party.append(idxs)
+        idxs_per_party = np.hstack(idxs_per_party)
+        combined_idxs.append(idxs_per_party)
+        
+        dict_to_add = {}
+        dict_to_add["idx"] = idxs_per_party
+        dict_to_add["X"] = X[idxs_per_party]
+        #dict_to_add["y"] = y[idxs_per_party]
+        #dict_to_add["y_super"] = y_super[idxs_per_party]
+        dict_to_add["y"] = y_super[idxs_per_party]
+        priv_data[count] = dict_to_add
+        count += 1
+    
+    combined_idxs = np.hstack(combined_idxs)
+    total_priv_data = {}
+    total_priv_data["idx"] = combined_idxs
+    total_priv_data["X"] = X[combined_idxs]
+    #total_priv_data["y"] = y[combined_idxs]
+    #total_priv_data["y_super"] = y_super[combined_idxs]
+    total_priv_data["y"] = y_super[combined_idxs]
+    return priv_data, total_priv_data
