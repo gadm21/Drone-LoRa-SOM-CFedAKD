@@ -40,6 +40,7 @@ def get_drone_route(nodes, network, start_idx = 0):
 
     all_idc = nodes.sort_values('winner').index
 
+    ## the way settig the start idx and rolling the solution (next two lines) is implemented seems to be incorrect
     # find the index of the start_idx in the sorted list
     start_idx = np.where(all_idc == start_idx)[0][0]
 
@@ -47,4 +48,4 @@ def get_drone_route(nodes, network, start_idx = 0):
     rolled_idx = np.roll(all_idc, -start_idx)
 
     # remove the last element, which is the same as the first
-    return rolled_idx[:-1]
+    return rolled_idx
