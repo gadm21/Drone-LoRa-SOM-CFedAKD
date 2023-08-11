@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import StratifiedShuffleSplit
-from tensorflow.keras.datasets import cifar10, cifar100, mnist
+from tensorflow.keras.datasets import cifar10, cifar100, mnist, fashion_mnist
 import scipy.io as sio
 
 
@@ -20,6 +20,32 @@ def load_MNIST_data(standarized = False, verbose = False):
     
     if verbose == True: 
         print("MNIST dataset ... ")
+        print("X_train shape :", X_train.shape)
+        print("X_test shape :", X_test.shape)
+        print("y_train shape :", y_train.shape)
+        print("y_test shape :", y_test.shape)
+    
+    return X_train, y_train, X_test, y_test
+
+
+def load_FEMNIST_data(standarized = False, verbose = False):
+
+    (X_train, y_train), (X_test, y_test) = fashion_mnist.load_data()
+    print("shape:", y_train.shape)
+    print("unique:", np.unique(y_train))
+    y_train = y_train - 1
+    y_test = y_test - 1
+
+    if standarized: 
+        X_train = X_train/255
+        X_test = X_test/255
+        mean_image = np.mean(X_train, axis=0)
+        X_train -= mean_image
+        X_test -= mean_image
+    
+
+    if verbose == True: 
+        print("EMNIST-letter dataset ... ")
         print("X_train shape :", X_train.shape)
         print("X_test shape :", X_test.shape)
         print("y_train shape :", y_train.shape)
@@ -92,8 +118,6 @@ def load_CIFAR_data(data_type="CIFAR10", label_mode="fine",
         mean_image = np.mean(X_train, axis=0)
         X_train -= mean_image
         X_test -= mean_image
-        
-    
     
     if verbose == True: 
         print("X_train shape :", X_train.shape)
@@ -102,6 +126,7 @@ def load_CIFAR_data(data_type="CIFAR10", label_mode="fine",
         print("y_test shape :", y_test.shape)
     
     return X_train, y_train, X_test, y_test
+
 
 def load_CIFAR_from_local(local_dir, data_type="CIFAR10", with_coarse_label = False, 
                           standarized = False, verbose = False):
@@ -191,9 +216,7 @@ def generate_partial_data(X, y, class_in_use = None, verbose = False):
         idx = [y == i for i in class_in_use]
         idx = np.any(idx, axis = 0)
     X_incomplete, y_incomplete = X[idx], y[idx]
-    if verbose == True:
-        print("X shape :", X_incomplete.shape)
-        print("y shape :", y_incomplete.shape)
+    
     return X_incomplete, y_incomplete
 
 

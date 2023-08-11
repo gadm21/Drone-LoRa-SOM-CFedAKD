@@ -10,17 +10,18 @@ from utility import *
 
 
 
-
 class FedMD():
     def __init__(self, parties, public_dataset, 
                  private_data, total_private_data,  
                  private_test_data, N_alignment,
                  N_rounds, 
                  N_logits_matching_round, logits_matching_batchsize, 
-                 N_private_training_round, private_training_batchsize, aug = False, compress = False):
+                 N_private_training_round, private_training_batchsize,
+                 aug = False, compress = False, select = False):
         
         self.N_parties = len(parties)
         self.public_dataset = public_dataset
+        self.class_diff = np.unique(public_dataset["y"])
         self.private_data = private_data
         self.private_test_data = private_test_data
         self.N_alignment = N_alignment
@@ -28,6 +29,9 @@ class FedMD():
         self.N_rounds = N_rounds
         self.aug = aug
         self.compress = compress
+        self.select = select 
+        self.heatmaps = np.zeros((self.N_rounds, self.N_parties, len(self.class_diff)))
+
         self.N_logits_matching_round = N_logits_matching_round
         self.logits_matching_batchsize = logits_matching_batchsize
         self.N_private_training_round = N_private_training_round
@@ -116,7 +120,8 @@ class FedMD():
                 np.random.seed(beta) 
                 index = np.random.permutation(len(self.public_dataset["X"]))  
                 new_public_dataset_x = lambdaa * self.public_dataset["X"] + (1 - lambdaa) * self.public_dataset["X"][index]
-                new_public_dataset_y = lambdaa * self.public_dataset["y"] + (1 - lambdaa) * self.public_dataset["y"][index]
+                new_public_dataset_y = self.public_dataset["y"][index]
+                # new_public_dataset_y = lambdaa * self.public_dataset["y"] + (1 - lambdaa) * self.public_dataset["y"][index]
 
                 # At beginning of each round, generate new alignment dataset
                 alignment_data = generate_alignment_data(new_public_dataset_x, 
@@ -129,20 +134,47 @@ class FedMD():
             
             print("update logits ... ")
             # update logits
-            print("aug:{0}, compress:{1}, N_alignment:{2}".format(self.aug, self.compress, self.N_alignment))
-            print("collaborative parties", len(self.collaborative_parties))
-            print("size of alignment data {0}, length: {1}".format(size_of(alignment_data['y']), len(alignment_data["y"])))
+            # print("aug:{0}, compress:{1}, N_alignment:{2}".format(self.aug, self.compress, self.N_alignment))
+            # print("collaborative parties", len(self.collaborative_parties))
+            # print("size of alignment data {0}, length: {1}".format(size_of(alignment_data['y']), len(alignment_data["y"])))
             local_logits = []
             for d in self.collaborative_parties:
                 d["model_logits"].set_weights(d["model_weights"])
                 local_logits.append(d["model_logits"].predict(alignment_data["X"], verbose = 0))
+            
+            # print("model summary:", d['model_logits'].summary())
+            # print("GT shape:", alignment_data["y"].shape)
                 
             logits = aggregate(local_logits, self.compress)
-            print("size of local soft labels:{0}, size of global soft labels:{1}".format(size_of(local_logits[0]), size_of(logits)))
-            print("length of local soft labels:{0}, length of global soft labels:{1}".format(len(local_logits[0]), len(logits)))
-            print("type of local soft labels:{0}, type of global soft labels:{1}".format(local_logits[0].dtype, logits.dtype))
-            return 
-        
+            # print("size of local soft labels:{0}, size of global soft labels:{1}".format(size_of(local_logits[0]), size_of(logits)))
+            # print("length of local soft labels:{0}, length of global soft labels:{1}".format(len(local_logits[0]), len(logits)))
+            # print("type of local soft labels:{0}, type of global soft labels:{1}".format(local_logits[0].dtype, logits.dtype))
+            # return 
+
+            ll = np.array(local_logits) 
+            gl = np.array(logits)
+
+            print("local logits shape: ", ll.shape)       
+            print("global logits shape: ", gl.shape)
+
+            diff_l = np.power(ll - gl, 2)
+            mean_diff_l = np.mean(diff_l, axis = 0)
+            print("diff_l: ", diff_l.shape)
+            
+            client_distance_map = np.zeros((self.N_parties, len(self.class_diff))) 
+            print("client_distance_map: ", client_distance_map.shape)
+            print("N_parties: ", self.N_parties)
+            for i in range(len(self.class_diff)):
+                for c in range(self.N_parties):
+                    dist = np.mean(diff_l[c, alignment_data['y'] == self.class_diff[i]])
+                    client_distance_map[c, i] = dist
+            
+            # normalize the distance map
+            # client_distance_map -= np.min(client_distance_map)
+            # client_distance_map = client_distance_map / np.max(client_distance_map)
+            self.heatmaps[r] = client_distance_map
+            
+
             # test performance
             print("test performance ... ")
             
@@ -155,7 +187,7 @@ class FedMD():
                 
                 
             r+= 1
-            if r > self.N_rounds:
+            if r >= self.N_rounds:
                 break
                 
                 
