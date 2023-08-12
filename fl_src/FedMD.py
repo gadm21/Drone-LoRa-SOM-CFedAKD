@@ -46,7 +46,7 @@ class FedMD():
             model_A_twin = None
             model_A_twin = clone_model(parties[i])
             model_A_twin.set_weights(parties[i].get_weights())
-            model_A_twin.compile(optimizer=tf.keras.optimizers.Adam(lr = 1e-4), 
+            model_A_twin.compile(optimizer=tf.keras.optimizers.Adam(lr = 1e-5), 
                                  loss = "sparse_categorical_crossentropy",
                                  metrics = ["accuracy"])
             

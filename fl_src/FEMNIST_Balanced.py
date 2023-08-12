@@ -75,6 +75,8 @@ if __name__ == "__main__":
         if select:
             print("adding select")
             result_save_dir = result_save_dir + "_select"
+        print("Using {} alignment".format(N_alignment))
+        result_save_dir = result_save_dir + "_{}".format(N_alignment)
     
     del conf_dict, conf_file
     
@@ -107,13 +109,15 @@ if __name__ == "__main__":
     
     parties = []
     if model_saved_dir is None:
-        for i, item in enumerate(model_config):
+        for i in range(N_parties):
+
+            item = np.random.choice(model_config)
             model_name = item["model_type"]
             model_params = item["params"]
             tmp = CANDIDATE_MODELS[model_name](n_classes=n_classes, 
                                                input_shape=(28,28),
                                                **model_params)
-            print("model {0} : {1}".format(i, model_saved_names[i]))
+            # print("model {0} : {1}".format(i, model_saved_names[i]))
             parties.append(tmp)
             
             del model_name, model_params, tmp
