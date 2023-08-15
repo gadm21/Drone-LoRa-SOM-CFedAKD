@@ -1,0 +1,315 @@
+2023-08-15 08:29:13,366:INFO:parent:model 0
+2023-08-15 08:29:13,425:INFO:parent:model 1
+2023-08-15 08:29:13,478:INFO:parent:model 2
+2023-08-15 08:29:13,529:INFO:parent:model 3
+2023-08-15 08:29:13,582:INFO:parent:model 4
+2023-08-15 08:29:13,635:INFO:parent:model 5
+2023-08-15 08:29:13,687:INFO:parent:model 6
+2023-08-15 08:29:13,742:INFO:parent:model 7
+2023-08-15 08:29:13,796:INFO:parent:model 8
+2023-08-15 08:29:13,850:INFO:parent:model 9
+2023-08-15 08:29:13,904:INFO:parent:model 10
+2023-08-15 08:29:13,964:INFO:parent:model 11
+2023-08-15 08:29:14,023:INFO:parent:model 12
+2023-08-15 08:29:14,077:INFO:parent:model 13
+2023-08-15 08:29:14,133:INFO:parent:model 14
+2023-08-15 08:29:14,195:INFO:parent:model 15
+2023-08-15 08:29:14,262:INFO:parent:model 16
+2023-08-15 08:29:14,320:INFO:parent:model 17
+2023-08-15 08:29:14,377:INFO:parent:model 18
+2023-08-15 08:29:14,433:INFO:parent:model 19
+2023-08-15 08:29:14,489:INFO:parent:round 0
+2023-08-15 08:29:34,281:INFO:parent:model 0 accuracy: 0.3662
+2023-08-15 08:29:37,128:INFO:parent:model 1 accuracy: 0.134
+2023-08-15 08:29:40,176:INFO:parent:model 2 accuracy: 0.2001
+2023-08-15 08:29:43,313:INFO:parent:model 3 accuracy: 0.1616
+2023-08-15 08:29:46,463:INFO:parent:model 4 accuracy: 0.2769
+2023-08-15 08:29:49,691:INFO:parent:model 5 accuracy: 0.1229
+2023-08-15 08:29:52,735:INFO:parent:model 6 accuracy: 0.3111
+2023-08-15 08:29:55,929:INFO:parent:model 7 accuracy: 0.1179
+2023-08-15 08:29:59,039:INFO:parent:model 8 accuracy: 0.2746
+2023-08-15 08:30:02,312:INFO:parent:model 9 accuracy: 0.2251
+2023-08-15 08:30:06,111:INFO:parent:model 10 accuracy: 0.2888
+2023-08-15 08:30:09,896:INFO:parent:model 11 accuracy: 0.1315
+2023-08-15 08:30:13,586:INFO:parent:model 12 accuracy: 0.2671
+2023-08-15 08:30:17,498:INFO:parent:model 13 accuracy: 0.1369
+2023-08-15 08:30:21,078:INFO:parent:model 14 accuracy: 0.2999
+2023-08-15 08:30:24,244:INFO:parent:model 15 accuracy: 0.2025
+2023-08-15 08:30:27,927:INFO:parent:model 16 accuracy: 0.2566
+2023-08-15 08:30:31,594:INFO:parent:model 17 accuracy: 0.3453
+2023-08-15 08:30:35,431:INFO:parent:model 18 accuracy: 0.1075
+2023-08-15 08:30:39,329:INFO:parent:model 19 accuracy: 0.1519
+2023-08-15 08:30:39,329:INFO:parent:round 1
+2023-08-15 08:30:49,830:INFO:parent:model 0 accuracy: 0.1
+2023-08-15 08:30:53,557:INFO:parent:model 1 accuracy: 0.1029
+2023-08-15 08:30:57,194:INFO:parent:model 2 accuracy: 0.1051
+2023-08-15 08:31:00,982:INFO:parent:model 3 accuracy: 0.1
+2023-08-15 08:31:04,789:INFO:parent:model 4 accuracy: 0.1173
+2023-08-15 08:31:08,474:INFO:parent:model 5 accuracy: 0.1107
+2023-08-15 08:31:12,224:INFO:parent:model 6 accuracy: 0.1
+2023-08-15 08:31:15,989:INFO:parent:model 7 accuracy: 0.1013
+2023-08-15 08:31:19,745:INFO:parent:model 8 accuracy: 0.1166
+2023-08-15 08:31:23,477:INFO:parent:model 9 accuracy: 0.1228
+2023-08-15 08:31:27,239:INFO:parent:model 10 accuracy: 0.1071
+2023-08-15 08:31:30,990:INFO:parent:model 11 accuracy: 0.1
+2023-08-15 08:31:34,623:INFO:parent:model 12 accuracy: 0.1166
+2023-08-15 08:31:38,319:INFO:parent:model 13 accuracy: 0.1194
+2023-08-15 08:31:42,095:INFO:parent:model 14 accuracy: 0.1114
+2023-08-15 08:31:45,646:INFO:parent:model 15 accuracy: 0.148
+2023-08-15 08:31:49,214:INFO:parent:model 16 accuracy: 0.1098
+2023-08-15 08:31:52,966:INFO:parent:model 17 accuracy: 0.1
+2023-08-15 08:31:56,703:INFO:parent:model 18 accuracy: 0.1052
+2023-08-15 08:32:00,470:INFO:parent:model 19 accuracy: 0.1001
+2023-08-15 08:32:00,470:INFO:parent:round 2
+2023-08-15 08:32:10,880:INFO:parent:model 0 accuracy: 0.1024
+2023-08-15 08:32:14,575:INFO:parent:model 1 accuracy: 0.1146
+2023-08-15 08:32:18,120:INFO:parent:model 2 accuracy: 0.1078
+2023-08-15 08:32:21,229:INFO:parent:model 3 accuracy: 0.1238
+2023-08-15 08:32:24,363:INFO:parent:model 4 accuracy: 0.1217
+2023-08-15 08:32:27,438:INFO:parent:model 5 accuracy: 0.1257
+2023-08-15 08:32:30,544:INFO:parent:model 6 accuracy: 0.1
+2023-08-15 08:32:33,655:INFO:parent:model 7 accuracy: 0.1131
+2023-08-15 08:32:36,700:INFO:parent:model 8 accuracy: 0.1177
+2023-08-15 08:32:39,989:INFO:parent:model 9 accuracy: 0.1095
+2023-08-15 08:32:43,107:INFO:parent:model 10 accuracy: 0.1107
+2023-08-15 08:32:46,195:INFO:parent:model 11 accuracy: 0.1146
+2023-08-15 08:32:49,352:INFO:parent:model 12 accuracy: 0.1149
+2023-08-15 08:32:52,963:INFO:parent:model 13 accuracy: 0.1173
+2023-08-15 08:32:56,736:INFO:parent:model 14 accuracy: 0.1027
+2023-08-15 08:33:00,467:INFO:parent:model 15 accuracy: 0.12
+2023-08-15 08:33:03,690:INFO:parent:model 16 accuracy: 0.1
+2023-08-15 08:33:06,807:INFO:parent:model 17 accuracy: 0.1045
+2023-08-15 08:33:09,910:INFO:parent:model 18 accuracy: 0.1103
+2023-08-15 08:33:13,035:INFO:parent:model 19 accuracy: 0.1246
+2023-08-15 08:33:13,035:INFO:parent:round 3
+2023-08-15 08:33:22,731:INFO:parent:model 0 accuracy: 0.1007
+2023-08-15 08:33:25,807:INFO:parent:model 1 accuracy: 0.142
+2023-08-15 08:33:28,953:INFO:parent:model 2 accuracy: 0.115
+2023-08-15 08:33:32,061:INFO:parent:model 3 accuracy: 0.1336
+2023-08-15 08:33:35,128:INFO:parent:model 4 accuracy: 0.1
+2023-08-15 08:33:38,204:INFO:parent:model 5 accuracy: 0.1269
+2023-08-15 08:33:41,291:INFO:parent:model 6 accuracy: 0.1037
+2023-08-15 08:33:44,322:INFO:parent:model 7 accuracy: 0.1
+2023-08-15 08:33:47,426:INFO:parent:model 8 accuracy: 0.1255
+2023-08-15 08:33:50,551:INFO:parent:model 9 accuracy: 0.1221
+2023-08-15 08:33:53,623:INFO:parent:model 10 accuracy: 0.1
+2023-08-15 08:33:56,726:INFO:parent:model 11 accuracy: 0.1289
+2023-08-15 08:33:59,865:INFO:parent:model 12 accuracy: 0.1053
+2023-08-15 08:34:02,961:INFO:parent:model 13 accuracy: 0.1223
+2023-08-15 08:34:06,088:INFO:parent:model 14 accuracy: 0.1064
+2023-08-15 08:34:10,014:INFO:parent:model 15 accuracy: 0.113
+2023-08-15 08:34:13,127:INFO:parent:model 16 accuracy: 0.1
+2023-08-15 08:34:16,236:INFO:parent:model 17 accuracy: 0.1189
+2023-08-15 08:34:19,343:INFO:parent:model 18 accuracy: 0.1242
+2023-08-15 08:34:22,428:INFO:parent:model 19 accuracy: 0.1263
+2023-08-15 08:34:22,428:INFO:parent:round 4
+2023-08-15 08:34:32,096:INFO:parent:model 0 accuracy: 0.1031
+2023-08-15 08:34:35,158:INFO:parent:model 1 accuracy: 0.1
+2023-08-15 08:34:38,287:INFO:parent:model 2 accuracy: 0.1092
+2023-08-15 08:34:41,375:INFO:parent:model 3 accuracy: 0.1207
+2023-08-15 08:34:44,489:INFO:parent:model 4 accuracy: 0.1
+2023-08-15 08:34:47,597:INFO:parent:model 5 accuracy: 0.1
+2023-08-15 08:34:50,707:INFO:parent:model 6 accuracy: 0.1286
+2023-08-15 08:34:53,815:INFO:parent:model 7 accuracy: 0.1051
+2023-08-15 08:34:56,968:INFO:parent:model 8 accuracy: 0.1
+2023-08-15 08:35:00,099:INFO:parent:model 9 accuracy: 0.1137
+2023-08-15 08:35:03,228:INFO:parent:model 10 accuracy: 0.1258
+2023-08-15 08:35:06,344:INFO:parent:model 11 accuracy: 0.1353
+2023-08-15 08:35:09,449:INFO:parent:model 12 accuracy: 0.1
+2023-08-15 08:35:12,603:INFO:parent:model 13 accuracy: 0.1179
+2023-08-15 08:35:15,754:INFO:parent:model 14 accuracy: 0.1006
+2023-08-15 08:35:18,891:INFO:parent:model 15 accuracy: 0.126
+2023-08-15 08:35:21,950:INFO:parent:model 16 accuracy: 0.1
+2023-08-15 08:35:25,039:INFO:parent:model 17 accuracy: 0.1
+2023-08-15 08:35:28,168:INFO:parent:model 18 accuracy: 0.11
+2023-08-15 08:35:31,275:INFO:parent:model 19 accuracy: 0.1271
+2023-08-15 08:35:31,275:INFO:parent:round 5
+2023-08-15 08:35:41,095:INFO:parent:model 0 accuracy: 0.1322
+2023-08-15 08:35:44,189:INFO:parent:model 1 accuracy: 0.1028
+2023-08-15 08:35:47,344:INFO:parent:model 2 accuracy: 0.1223
+2023-08-15 08:35:50,429:INFO:parent:model 3 accuracy: 0.1016
+2023-08-15 08:35:53,515:INFO:parent:model 4 accuracy: 0.1
+2023-08-15 08:35:56,598:INFO:parent:model 5 accuracy: 0.1
+2023-08-15 08:35:59,698:INFO:parent:model 6 accuracy: 0.128
+2023-08-15 08:36:02,794:INFO:parent:model 7 accuracy: 0.1
+2023-08-15 08:36:05,874:INFO:parent:model 8 accuracy: 0.1174
+2023-08-15 08:36:08,983:INFO:parent:model 9 accuracy: 0.1
+2023-08-15 08:36:12,057:INFO:parent:model 10 accuracy: 0.1
+2023-08-15 08:36:15,155:INFO:parent:model 11 accuracy: 0.11
+2023-08-15 08:36:18,335:INFO:parent:model 12 accuracy: 0.1003
+2023-08-15 08:36:21,469:INFO:parent:model 13 accuracy: 0.1021
+2023-08-15 08:36:24,554:INFO:parent:model 14 accuracy: 0.1002
+2023-08-15 08:36:27,674:INFO:parent:model 15 accuracy: 0.1132
+2023-08-15 08:36:30,690:INFO:parent:model 16 accuracy: 0.1
+2023-08-15 08:36:33,808:INFO:parent:model 17 accuracy: 0.1042
+2023-08-15 08:36:36,961:INFO:parent:model 18 accuracy: 0.1
+2023-08-15 08:36:40,052:INFO:parent:model 19 accuracy: 0.1216
+2023-08-15 08:36:40,052:INFO:parent:round 6
+2023-08-15 08:36:49,691:INFO:parent:model 0 accuracy: 0.1094
+2023-08-15 08:36:52,826:INFO:parent:model 1 accuracy: 0.1
+2023-08-15 08:36:55,957:INFO:parent:model 2 accuracy: 0.1
+2023-08-15 08:36:59,086:INFO:parent:model 3 accuracy: 0.1005
+2023-08-15 08:37:02,238:INFO:parent:model 4 accuracy: 0.1
+2023-08-15 08:37:05,353:INFO:parent:model 5 accuracy: 0.1
+2023-08-15 08:37:08,368:INFO:parent:model 6 accuracy: 0.1397
+2023-08-15 08:37:11,513:INFO:parent:model 7 accuracy: 0.1
+2023-08-15 08:37:14,628:INFO:parent:model 8 accuracy: 0.1
+2023-08-15 08:37:17,793:INFO:parent:model 9 accuracy: 0.0999
+2023-08-15 08:37:20,870:INFO:parent:model 10 accuracy: 0.1
+2023-08-15 08:37:24,034:INFO:parent:model 11 accuracy: 0.1
+2023-08-15 08:37:27,148:INFO:parent:model 12 accuracy: 0.1
+2023-08-15 08:37:30,256:INFO:parent:model 13 accuracy: 0.1255
+2023-08-15 08:37:33,408:INFO:parent:model 14 accuracy: 0.1
+2023-08-15 08:37:36,519:INFO:parent:model 15 accuracy: 0.1042
+2023-08-15 08:37:39,708:INFO:parent:model 16 accuracy: 0.1
+2023-08-15 08:37:42,792:INFO:parent:model 17 accuracy: 0.1
+2023-08-15 08:37:45,890:INFO:parent:model 18 accuracy: 0.1
+2023-08-15 08:37:49,054:INFO:parent:model 19 accuracy: 0.1283
+2023-08-15 08:37:49,054:INFO:parent:round 7
+2023-08-15 08:37:58,829:INFO:parent:model 0 accuracy: 0.1002
+2023-08-15 08:38:01,979:INFO:parent:model 1 accuracy: 0.1
+2023-08-15 08:38:05,143:INFO:parent:model 2 accuracy: 0.1241
+2023-08-15 08:38:08,276:INFO:parent:model 3 accuracy: 0.1
+2023-08-15 08:38:11,402:INFO:parent:model 4 accuracy: 0.1
+2023-08-15 08:38:14,587:INFO:parent:model 5 accuracy: 0.1
+2023-08-15 08:38:17,722:INFO:parent:model 6 accuracy: 0.1447
+2023-08-15 08:38:20,867:INFO:parent:model 7 accuracy: 0.1
+2023-08-15 08:38:24,035:INFO:parent:model 8 accuracy: 0.1041
+2023-08-15 08:38:27,120:INFO:parent:model 9 accuracy: 0.1004
+2023-08-15 08:38:30,228:INFO:parent:model 10 accuracy: 0.1
+2023-08-15 08:38:33,393:INFO:parent:model 11 accuracy: 0.1
+2023-08-15 08:38:36,475:INFO:parent:model 12 accuracy: 0.1007
+2023-08-15 08:38:39,610:INFO:parent:model 13 accuracy: 0.1001
+2023-08-15 08:38:42,844:INFO:parent:model 14 accuracy: 0.1014
+2023-08-15 08:38:45,944:INFO:parent:model 15 accuracy: 0.1054
+2023-08-15 08:38:49,068:INFO:parent:model 16 accuracy: 0.1
+2023-08-15 08:38:52,219:INFO:parent:model 17 accuracy: 0.1
+2023-08-15 08:38:55,327:INFO:parent:model 18 accuracy: 0.1001
+2023-08-15 08:38:58,455:INFO:parent:model 19 accuracy: 0.1132
+2023-08-15 08:38:58,455:INFO:parent:round 8
+2023-08-15 08:39:08,131:INFO:parent:model 0 accuracy: 0.1452
+2023-08-15 08:39:11,300:INFO:parent:model 1 accuracy: 0.1
+2023-08-15 08:39:14,457:INFO:parent:model 2 accuracy: 0.1001
+2023-08-15 08:39:17,652:INFO:parent:model 3 accuracy: 0.1
+2023-08-15 08:39:20,696:INFO:parent:model 4 accuracy: 0.1
+2023-08-15 08:39:23,841:INFO:parent:model 5 accuracy: 0.1001
+2023-08-15 08:39:27,008:INFO:parent:model 6 accuracy: 0.124
+2023-08-15 08:39:30,122:INFO:parent:model 7 accuracy: 0.1
+2023-08-15 08:39:33,173:INFO:parent:model 8 accuracy: 0.1
+2023-08-15 08:39:36,361:INFO:parent:model 9 accuracy: 0.1
+2023-08-15 08:39:39,488:INFO:parent:model 10 accuracy: 0.1
+2023-08-15 08:39:42,577:INFO:parent:model 11 accuracy: 0.1014
+2023-08-15 08:39:45,779:INFO:parent:model 12 accuracy: 0.1
+2023-08-15 08:39:48,828:INFO:parent:model 13 accuracy: 0.1217
+2023-08-15 08:39:51,964:INFO:parent:model 14 accuracy: 0.1
+2023-08-15 08:39:55,152:INFO:parent:model 15 accuracy: 0.1
+2023-08-15 08:39:58,252:INFO:parent:model 16 accuracy: 0.1
+2023-08-15 08:40:01,568:INFO:parent:model 17 accuracy: 0.1034
+2023-08-15 08:40:04,901:INFO:parent:model 18 accuracy: 0.1
+2023-08-15 08:40:08,048:INFO:parent:model 19 accuracy: 0.1
+2023-08-15 08:40:08,048:INFO:parent:round 9
+2023-08-15 08:40:17,774:INFO:parent:model 0 accuracy: 0.1006
+2023-08-15 08:40:20,909:INFO:parent:model 1 accuracy: 0.1
+2023-08-15 08:40:24,038:INFO:parent:model 2 accuracy: 0.1
+2023-08-15 08:40:27,253:INFO:parent:model 3 accuracy: 0.1
+2023-08-15 08:40:30,380:INFO:parent:model 4 accuracy: 0.1
+2023-08-15 08:40:33,519:INFO:parent:model 5 accuracy: 0.1
+2023-08-15 08:40:36,629:INFO:parent:model 6 accuracy: 0.1221
+2023-08-15 08:40:39,735:INFO:parent:model 7 accuracy: 0.1
+2023-08-15 08:40:42,853:INFO:parent:model 8 accuracy: 0.1
+2023-08-15 08:40:46,046:INFO:parent:model 9 accuracy: 0.1013
+2023-08-15 08:40:49,239:INFO:parent:model 10 accuracy: 0.1
+2023-08-15 08:40:52,321:INFO:parent:model 11 accuracy: 0.1003
+2023-08-15 08:40:55,457:INFO:parent:model 12 accuracy: 0.118
+2023-08-15 08:40:58,548:INFO:parent:model 13 accuracy: 0.1219
+2023-08-15 08:41:01,695:INFO:parent:model 14 accuracy: 0.1
+2023-08-15 08:41:04,828:INFO:parent:model 15 accuracy: 0.1158
+2023-08-15 08:41:07,945:INFO:parent:model 16 accuracy: 0.1
+2023-08-15 08:41:11,093:INFO:parent:model 17 accuracy: 0.1001
+2023-08-15 08:41:14,195:INFO:parent:model 18 accuracy: 0.1
+2023-08-15 08:41:17,308:INFO:parent:model 19 accuracy: 0.1167
+2023-08-15 08:41:17,309:INFO:parent:round 10
+2023-08-15 08:41:27,218:INFO:parent:model 0 accuracy: 0.1131
+2023-08-15 08:41:30,337:INFO:parent:model 1 accuracy: 0.1
+2023-08-15 08:41:33,472:INFO:parent:model 2 accuracy: 0.1076
+2023-08-15 08:41:36,588:INFO:parent:model 3 accuracy: 0.1002
+2023-08-15 08:41:39,678:INFO:parent:model 4 accuracy: 0.1
+2023-08-15 08:41:42,786:INFO:parent:model 5 accuracy: 0.102
+2023-08-15 08:41:45,878:INFO:parent:model 6 accuracy: 0.101
+2023-08-15 08:41:49,022:INFO:parent:model 7 accuracy: 0.1
+2023-08-15 08:41:52,187:INFO:parent:model 8 accuracy: 0.1023
+2023-08-15 08:41:55,355:INFO:parent:model 9 accuracy: 0.1003
+2023-08-15 08:41:58,415:INFO:parent:model 10 accuracy: 0.1004
+2023-08-15 08:42:01,568:INFO:parent:model 11 accuracy: 0.1062
+2023-08-15 08:42:04,659:INFO:parent:model 12 accuracy: 0.1
+2023-08-15 08:42:07,817:INFO:parent:model 13 accuracy: 0.1243
+2023-08-15 08:42:10,973:INFO:parent:model 14 accuracy: 0.1
+2023-08-15 08:42:14,079:INFO:parent:model 15 accuracy: 0.1036
+2023-08-15 08:42:17,153:INFO:parent:model 16 accuracy: 0.1
+2023-08-15 08:42:20,256:INFO:parent:model 17 accuracy: 0.1069
+2023-08-15 08:42:23,373:INFO:parent:model 18 accuracy: 0.1003
+2023-08-15 08:42:26,485:INFO:parent:model 19 accuracy: 0.1082
+2023-08-15 08:42:26,485:INFO:parent:round 11
+2023-08-15 08:42:36,174:INFO:parent:model 0 accuracy: 0.1006
+2023-08-15 08:42:39,328:INFO:parent:model 1 accuracy: 0.1
+2023-08-15 08:42:42,428:INFO:parent:model 2 accuracy: 0.1034
+2023-08-15 08:42:45,568:INFO:parent:model 3 accuracy: 0.1
+2023-08-15 08:42:48,631:INFO:parent:model 4 accuracy: 0.1013
+2023-08-15 08:42:51,744:INFO:parent:model 5 accuracy: 0.1
+2023-08-15 08:42:54,876:INFO:parent:model 6 accuracy: 0.1369
+2023-08-15 08:42:58,010:INFO:parent:model 7 accuracy: 0.1
+2023-08-15 08:43:01,142:INFO:parent:model 8 accuracy: 0.1
+2023-08-15 08:43:04,230:INFO:parent:model 9 accuracy: 0.1003
+2023-08-15 08:43:07,355:INFO:parent:model 10 accuracy: 0.1041
+2023-08-15 08:43:10,501:INFO:parent:model 11 accuracy: 0.1061
+2023-08-15 08:43:13,650:INFO:parent:model 12 accuracy: 0.1245
+2023-08-15 08:43:16,762:INFO:parent:model 13 accuracy: 0.1144
+2023-08-15 08:43:19,822:INFO:parent:model 14 accuracy: 0.1
+2023-08-15 08:43:22,921:INFO:parent:model 15 accuracy: 0.1027
+2023-08-15 08:43:26,054:INFO:parent:model 16 accuracy: 0.1
+2023-08-15 08:43:29,196:INFO:parent:model 17 accuracy: 0.1027
+2023-08-15 08:43:32,276:INFO:parent:model 18 accuracy: 0.1
+2023-08-15 08:43:35,367:INFO:parent:model 19 accuracy: 0.1249
+2023-08-15 08:43:35,367:INFO:parent:round 12
+2023-08-15 08:43:45,036:INFO:parent:model 0 accuracy: 0.1112
+2023-08-15 08:43:48,148:INFO:parent:model 1 accuracy: 0.1
+2023-08-15 08:43:51,282:INFO:parent:model 2 accuracy: 0.1181
+2023-08-15 08:43:54,414:INFO:parent:model 3 accuracy: 0.1023
+2023-08-15 08:43:57,538:INFO:parent:model 4 accuracy: 0.1018
+2023-08-15 08:44:00,681:INFO:parent:model 5 accuracy: 0.1022
+2023-08-15 08:44:03,751:INFO:parent:model 6 accuracy: 0.1049
+2023-08-15 08:44:06,887:INFO:parent:model 7 accuracy: 0.1
+2023-08-15 08:44:10,021:INFO:parent:model 8 accuracy: 0.101
+2023-08-15 08:44:13,117:INFO:parent:model 9 accuracy: 0.1119
+2023-08-15 08:44:16,288:INFO:parent:model 10 accuracy: 0.1045
+2023-08-15 08:44:19,376:INFO:parent:model 11 accuracy: 0.1023
+2023-08-15 08:44:22,477:INFO:parent:model 12 accuracy: 0.1064
+2023-08-15 08:44:25,635:INFO:parent:model 13 accuracy: 0.1261
+2023-08-15 08:44:28,788:INFO:parent:model 14 accuracy: 0.1
+2023-08-15 08:44:31,894:INFO:parent:model 15 accuracy: 0.1005
+2023-08-15 08:44:34,987:INFO:parent:model 16 accuracy: 0.1
+2023-08-15 08:44:38,112:INFO:parent:model 17 accuracy: 0.1
+2023-08-15 08:44:41,234:INFO:parent:model 18 accuracy: 0.1003
+2023-08-15 08:44:44,337:INFO:parent:model 19 accuracy: 0.1173
+2023-08-15 08:44:44,338:INFO:parent:round 13
+2023-08-15 08:44:54,098:INFO:parent:model 0 accuracy: 0.104
+2023-08-15 08:44:57,265:INFO:parent:model 1 accuracy: 0.1
+2023-08-15 08:45:00,358:INFO:parent:model 2 accuracy: 0.1271
+2023-08-15 08:45:03,401:INFO:parent:model 3 accuracy: 0.121
+2023-08-15 08:45:06,529:INFO:parent:model 4 accuracy: 0.1094
+2023-08-15 08:45:09,639:INFO:parent:model 5 accuracy: 0.107
+2023-08-15 08:45:12,747:INFO:parent:model 6 accuracy: 0.1104
+2023-08-15 08:45:15,836:INFO:parent:model 7 accuracy: 0.1002
+2023-08-15 08:45:18,997:INFO:parent:model 8 accuracy: 0.1134
+2023-08-15 08:45:22,088:INFO:parent:model 9 accuracy: 0.1043
+2023-08-15 08:45:25,191:INFO:parent:model 10 accuracy: 0.1194
+2023-08-15 08:45:28,289:INFO:parent:model 11 accuracy: 0.105
+2023-08-15 08:45:31,408:INFO:parent:model 12 accuracy: 0.1208
+2023-08-15 08:45:34,509:INFO:parent:model 13 accuracy: 0.131
+2023-08-15 08:45:37,680:INFO:parent:model 14 accuracy: 0.1053
+2023-08-15 08:45:40,765:INFO:parent:model 15 accuracy: 0.1288
+2023-08-15 08:45:43,851:INFO:parent:model 16 accuracy: 0.1
+2023-08-15 08:45:47,008:INFO:parent:model 17 accuracy: 0.1231
+2023-08-15 08:45:50,109:INFO:parent:model 18 accuracy: 0.1015
+2023-08-15 08:45:53,201:INFO:parent:model 19 accuracy: 0.1372
+2023-08-15 08:45:53,201:INFO:parent:round 14

@@ -25,6 +25,23 @@ def size_of(obj) :
 
 
 
+def model_stats(model, data, labels, loss_fn) : 
+    """a function that takes a model, data, and labels and returns the predictions and losses for the data
+
+    Args:
+        model (keras model): A keras model
+        data (np.array): data samples with the distributions (samples, input_shape)
+        labels (np.array): labels for the data samples (samples, num_classes)
+        loss_fn (keras loss function): loss function to be used for calculating the loss
+    """
+
+    predictions = model.predict(data)
+    loss = loss_fn(labels, predictions)
+
+    return predictions, loss
+
+
+
 def aggregate(soft_labels, compress) : 
     soft_labels = np.array(soft_labels)
     

@@ -2,13 +2,14 @@ import numpy as np
 from tensorflow.keras.models import clone_model, load_model
 from tensorflow.keras.callbacks import EarlyStopping
 import tensorflow as tf
+import time
 
 from data_utils import generate_alignment_data
 from Neural_Networks import remove_last_layer
 
 from utility import * 
 
-
+import logging
 
 class FedMD():
     def __init__(self, parties, public_dataset, 
@@ -21,7 +22,7 @@ class FedMD():
         
         self.N_parties = len(parties)
         self.public_dataset = public_dataset
-        self.class_diff = np.unique(public_dataset["y"])
+        self.classes = np.unique(public_dataset["y"])
         self.private_data = private_data
         self.private_test_data = private_test_data
         self.N_alignment = N_alignment
@@ -30,7 +31,7 @@ class FedMD():
         self.aug = aug
         self.compress = compress
         self.select = select 
-        self.heatmaps = np.zeros((self.N_rounds, self.N_parties, len(self.class_diff)))
+        self.heatmaps = np.zeros((int(self.N_rounds), self.N_parties, len(self.classes)))
 
         self.N_logits_matching_round = N_logits_matching_round
         self.logits_matching_batchsize = logits_matching_batchsize
@@ -39,10 +40,18 @@ class FedMD():
         
         self.collaborative_parties = []
         self.init_result = []
+
+        self.logger = logging.getLogger("parent")
+        self.logger.setLevel(logging.INFO)
+
+        self.rounds_time = []
+
+        
         
         # print("start model initialization: ")
         for i in range(self.N_parties):
             print("model ", i)
+            self.logger.info("model {0}".format(i))
             model_A_twin = None
             model_A_twin = clone_model(parties[i])
             model_A_twin.set_weights(parties[i].get_weights())
@@ -50,60 +59,22 @@ class FedMD():
                                  loss = "sparse_categorical_crossentropy",
                                  metrics = ["accuracy"])
             
-        #     print("start full stack training ... ")        
-            
-        #     model_A_twin.fit(private_data[i]["X"], private_data[i]["y"],
-        #                      batch_size = 32, epochs = 50, shuffle=True, verbose = True,
-        #                      validation_data = [private_test_data["X"], private_test_data["y"]],
-        #                      callbacks=[EarlyStopping(monitor="val_accuracy", min_delta=0.0001, patience=4)]
-        #                     )
-            
-        #     print("full stack training done")
-            
             model_A = remove_last_layer(model_A_twin, loss="mean_absolute_error")
             
             self.collaborative_parties.append({"model_logits": model_A, 
                                                "model_classifier": model_A_twin,
                                                "model_weights": model_A_twin.get_weights()})
             
-        #     self.init_result.append({"val_acc": model_A_twin.history.history['val_accuracy'],
-        #                              "train_acc": model_A_twin.history.history['accuracy'],
-        #                              "val_loss": model_A_twin.history.history['val_loss'],
-        #                              "train_loss": model_A_twin.history.history['loss'],
-        #                             })
-            
-        #     print()
-        #     del model_A, model_A_twin
-        # #END FOR LOOP
-        
-        # print("calculate the theoretical upper bounds for participants: ")
-        
-        # self.upper_bounds = []
-        # self.pooled_train_result = []
-        # for model in parties:
-        #     model_ub = clone_model(model)
-        #     model_ub.set_weights(model.get_weights())
-        #     model_ub.compile(optimizer=tf.keras.optimizers.Adam(lr = 1e-5),
-        #                      loss = "sparse_categorical_crossentropy", 
-        #                      metrics = ["accuracy"])
-            
-        #     model_ub.fit(total_private_data["X"], total_private_data["y"],
-        #                  batch_size = 32, epochs = 50, shuffle=True, verbose = True, 
-        #                  validation_data = [private_test_data["X"], private_test_data["y"]],
-        #                  callbacks=[EarlyStopping(monitor="val_accuracy", min_delta=0.0001, patience=4)])
-            
-        #     self.upper_bounds.append(model_ub.history.history["val_accuracy"][-1])
-        #     self.pooled_train_result.append({"val_acc": model_ub.history.history["val_accuracy"], 
-        #                                      "acc": model_ub.history.history["accuracy"]})
-            
-        #     del model_ub    
-        # print("the upper bounds are:", self.upper_bounds)
-    
-    def collaborative_training(self):
-        # start collaborating training    
+    def collaborative_training(self):  
         collaboration_performance = {i: [] for i in range(self.N_parties)}
         r = 0
+        
+        rounds_start_time = time.time()
         while True:
+
+            if r > 0 : 
+                self.rounds_time.append(time.time() - rounds_start_time)
+                rounds_start_time = time.time()
             
             if not self.aug : 
                 # At beginning of each round, generate new alignment dataset
@@ -113,6 +84,7 @@ class FedMD():
                 
             else : 
                 print("augmenting public dataset ... ")
+                self.logger.info("augmenting public dataset ... ")
                 alpha = np.random.randint(1, 1_000_000)
                 beta = np.random.randint(1, 1000)
                 lambdaa = np.random.beta(alpha, alpha)
@@ -131,8 +103,10 @@ class FedMD():
             
 
             print("round ", r)
+            self.logger.info("round {0}".format(r))
             
             print("update logits ... ")
+            self.logger.info("update logits ... ")
             # update logits
             # print("aug:{0}, compress:{1}, N_alignment:{2}".format(self.aug, self.compress, self.N_alignment))
             # print("collaborative parties", len(self.collaborative_parties))
@@ -156,23 +130,55 @@ class FedMD():
 
             print("local logits shape: ", ll.shape)       
             print("global logits shape: ", gl.shape)
+            self.logger.info("local logits shape: {0}".format(ll.shape))
+            self.logger.info("global logits shape: {0}".format(gl.shape))
 
             diff_l = np.power(ll - gl, 2)
             mean_diff_l = np.mean(diff_l, axis = 0)
             print("diff_l: ", diff_l.shape)
+            print("mean_diff_l: ", mean_diff_l.shape)
             
-            client_distance_map = np.zeros((self.N_parties, len(self.class_diff))) 
+            client_distance_map = np.zeros((self.N_parties, len(self.classes))) 
             print("client_distance_map: ", client_distance_map.shape)
             print("N_parties: ", self.N_parties)
-            for i in range(len(self.class_diff)):
+            self.logger.info("client_distance_map: {0}".format(client_distance_map.shape))
+            self.logger.info("N_parties: {0}".format(self.N_parties))
+            for i in range(len(self.classes)):
                 for c in range(self.N_parties):
-                    dist = np.mean(diff_l[c, alignment_data['y'] == self.class_diff[i]])
+                    dist = np.mean(diff_l[c, alignment_data['y'] == self.classes[i]])
                     client_distance_map[c, i] = dist
             
+            classes_to_clients = []
+            dist_threshold = 0.0 if not self.select else 0.5 # 0 means no selection
+            for i in range(len(self.classes)):
+                norm_dist = (client_distance_map[:, i] - np.min(client_distance_map[:, i])) / (np.max(client_distance_map[:, i]) )
+                weak_clients = np.where(norm_dist >= dist_threshold)[0]
+                strong_clients = np.where(norm_dist < dist_threshold)[0]
+                classes_to_clients.append({"weak": weak_clients, "strong": strong_clients})
+            clients_to_classes = {i: [] for i in range(self.N_parties)}
+            for i, item in enumerate(classes_to_clients):
+                for c in item["weak"]:
+                    clients_to_classes[c].append(i)
+
+            selected_data = [] 
+            selected_labels = []
+            for i in range(self.N_parties):
+                selected_data.append([])
+                selected_labels.append([])
+                for c in clients_to_classes[i]:
+                    selected_data[i].append(alignment_data["X"][alignment_data["y"] == c])
+                    selected_labels[i].append(gl[alignment_data["y"] == c])
+                if len(selected_data[i]) : 
+                    selected_data[i] = np.concatenate(selected_data[i], axis = 0)
+                    selected_labels[i] = np.concatenate(selected_labels[i], axis = 0)
+                else :
+                    selected_data[i] = np.array([])
+                    selected_labels[i] = np.array([])
+
             # normalize the distance map
             # client_distance_map -= np.min(client_distance_map)
             # client_distance_map = client_distance_map / np.max(client_distance_map)
-            self.heatmaps[r] = client_distance_map
+            # self.heatmaps[r] = client_distance_map
             
 
             # test performance
@@ -189,11 +195,22 @@ class FedMD():
             r+= 1
             if r >= self.N_rounds:
                 break
-                
+            
+            print("ratio of data saved by selection")
+            for i in range(self.N_parties):
+                print(len(selected_data[i]) / len(alignment_data["X"]))
+            print()
+
+            self.logger.info("ratio of data saved by selection")
+            for i in range(self.N_parties):
+                self.logger.info("{0}".format(len(selected_data[i]) / len(alignment_data["X"])))
+            self.logger.info("")
+
                 
             print("updates models ...")
             for index, d in enumerate(self.collaborative_parties):
                 print("model {0} starting alignment with public logits... ".format(index))
+                self.logger.info("model {0} starting alignment with public logits... ".format(index))
                 
                 
                 weights_to_use = None
@@ -201,14 +218,24 @@ class FedMD():
 
                 d["model_logits"].set_weights(weights_to_use)
                 print("fitting")
-                d["model_logits"].fit(alignment_data["X"], logits, 
-                                      batch_size = self.logits_matching_batchsize,  
-                                      epochs = self.N_logits_matching_round, 
-                                      shuffle=True, verbose = 0)
-                d["model_weights"] = d["model_logits"].get_weights()
-                print("model {0} done alignment".format(index))
+                print("selected data shape: ", selected_data[index].shape)
+                print("selected labels shape: ", selected_labels[index].shape)
+                self.logger.info("selected data shape: {0}".format(selected_data[index].shape))
+                self.logger.info("selected labels shape: {0}".format(selected_labels[index].shape))
 
+                # Knowledge distillation training
+                if len(selected_data[index]) > 0:
+                    d["model_logits"].fit(selected_data[index], selected_labels[index],
+                                        batch_size = self.logits_matching_batchsize,  
+                                        epochs = self.N_logits_matching_round, 
+                                        shuffle=True, verbose = 0)
+                    d["model_weights"] = d["model_logits"].get_weights()
+                    print("model {0} done alignment".format(index))
+                    self.logger.info("model {0} done alignment".format(index))
+
+                # Private training
                 print("model {0} starting training with private data... ".format(index))
+                self.logger.info("model {0} starting training with private data... ".format(index))
                 weights_to_use = None
                 weights_to_use = d["model_weights"]
                 d["model_classifier"].set_weights(weights_to_use)
@@ -220,10 +247,95 @@ class FedMD():
 
                 d["model_weights"] = d["model_classifier"].get_weights()
                 print("model {0} done private training. \n".format(index))
+                self.logger.info("model {0} done private training. \n".format(index))
             #END FOR LOOP
         
         #END WHILE LOOP
         return collaboration_performance
 
 
+
+class FedAvg():
+    def __init__(self, parties, private_data, 
+                 private_test_data, N_rounds, N_private_training_round, private_training_batchsize):
+
+        self.N_parties = len(parties)
+        self.private_data = private_data
+        self.private_test_data = private_test_data
+        self.N_rounds = N_rounds
+
+        self.N_private_training_round = N_private_training_round
+        self.private_training_batchsize = private_training_batchsize
+        self.collaborative_parties = []
+
+        self.logger = logging.getLogger("parent")
+        self.logger.setLevel(logging.INFO)
+
+        for i in range(self.N_parties):
+            print("model ", i)
+            self.logger.info("model {0}".format(i))
+            model_clone = tf.keras.models.clone_model(parties[i])
+            model_clone.set_weights(parties[i].get_weights())
+            model_clone.compile(optimizer=tf.keras.optimizers.Adam(lr=1e-5),
+                                loss="sparse_categorical_crossentropy",
+                                metrics=["accuracy"])
+            
+            self.collaborative_parties.append(model_clone) 
+
+
+    def new_aggregate(self, weights) : 
+        avg_weights = []
+        for layer_id in range(len(weights[0]) ): 
+            avg_layer = np.mean([weights[i][layer_id] for i in range(len(weights))], axis = 0)
+            avg_weights.append(avg_layer)
+
+        return avg_weights
+
+    def aggregate_weights(self, models_weights):
+        # Get the total number of layers in the model
+        num_layers = len(models_weights[0])
+
+        avg_weights = []
+
+        # Iterate over each layer
+        for layer in range(num_layers):
+            # For each layer, get the average weight across all models
+            layer_avg = np.mean([model[layer] for model in models_weights], axis=0)
+            avg_weights.append(layer_avg)
+
+        return avg_weights
+
+    def collaborative_training(self):
+        collaboration_performance = {i: [] for i in range(self.N_parties)}
+        r = 0
         
+        while r < self.N_rounds:
+            print("round ", r)
+            self.logger.info("round {0}".format(r))
+
+            all_model_weights = [d.get_weights() for d in self.collaborative_parties]
+            avg_weights = self.new_aggregate(all_model_weights)
+
+            # set all parties to the average weights
+            for i, d in enumerate(self.collaborative_parties):
+                d.set_weights(avg_weights)
+                d.fit(self.private_data[i]['X'],
+                               self.private_data[i]["y"],
+                               batch_size=self.private_training_batchsize,
+                               epochs= self.N_private_training_round,
+                               shuffle=True, verbose=0)
+                
+                
+
+            for index, d in enumerate(self.collaborative_parties):
+                y_pred = d.predict(self.private_test_data["X"], verbose=0).argmax(axis=1)
+                client_accuracy = np.mean(self.private_test_data["y"] == y_pred)
+                collaboration_performance[index].append(client_accuracy) 
+                print("model {0} accuracy: {1}".format(index, client_accuracy))
+                self.logger.info("model {0} accuracy: {1}".format(index, client_accuracy))
+
+            r += 1
+
+
+        return collaboration_performance
+    
