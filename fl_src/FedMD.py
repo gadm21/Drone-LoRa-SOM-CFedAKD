@@ -194,7 +194,9 @@ class FedMD():
                 
             r+= 1
             if r >= self.N_rounds:
-                break
+                if self.check_exit() : 
+                    break 
+                
             
             print("ratio of data saved by selection")
             for i in range(self.N_parties):
@@ -253,6 +255,19 @@ class FedMD():
         #END WHILE LOOP
         return collaboration_performance
 
+        
+    def check_exit(self) : 
+        last_acc = np.mean([self.collaborative_parties[i][-1] for i in range(self.N_parties)])
+
+        for i in range(-3, -1, -1) : 
+            acc = np.mean([self.collaborative_parties[j][i] for j in range(self.N_parties)])
+            if acc < last_acc : 
+                return True
+        
+        return False
+
+
+
 
 
 class FedAvg():
@@ -309,12 +324,10 @@ class FedAvg():
         collaboration_performance = {i: [] for i in range(self.N_parties)}
         r = 0
         
-        while r < self.N_rounds:
+        while True:
             print("round ", r)
             self.logger.info("round {0}".format(r))
 
-            all_model_weights = [d.get_weights() for d in self.collaborative_parties]
-            avg_weights = self.new_aggregate(all_model_weights)
 
             # set all parties to the average weights
             for i, d in enumerate(self.collaborative_parties):
@@ -325,6 +338,8 @@ class FedAvg():
                                epochs= self.N_private_training_round,
                                shuffle=True, verbose=0)
                 
+            all_model_weights = [d.get_weights() for d in self.collaborative_parties]
+            avg_weights = self.new_aggregate(all_model_weights)
                 
 
             for index, d in enumerate(self.collaborative_parties):
@@ -335,7 +350,21 @@ class FedAvg():
                 self.logger.info("model {0} accuracy: {1}".format(index, client_accuracy))
 
             r += 1
-
-
+            if r >= self.N_rounds :
+                if self.check_exit() : 
+                    break 
+                
         return collaboration_performance
+    
+        
+    def check_exit(self) : 
+        last_acc = np.mean([self.collaborative_parties[i][-1] for i in range(self.N_parties)])
+
+        for i in range(-3, -1, -1) : 
+            acc = np.mean([self.collaborative_parties[j][i] for j in range(self.N_parties)])
+            if acc < last_acc : 
+                return True
+        
+        return False
+
     
