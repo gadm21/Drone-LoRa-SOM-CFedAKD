@@ -132,10 +132,9 @@ if __name__ == "__main__":
     parties = []
     if model_saved_dir is None:
         for i in range(N_parties):
-            item = model_config[i] 
-            # if algorithm == 'fedmd':
-            #     item = np.random.choice(model_config)
-            # else : item = model_config[0]
+            if algorithm == 'fedmd':
+                item = np.random.choice(model_config)
+            else : item = model_config[0]
             model_name = item["model_type"]
             model_params = item["params"]
             tmp = CANDIDATE_MODELS[model_name](n_classes=n_classes, 
@@ -145,8 +144,6 @@ if __name__ == "__main__":
             parties.append(tmp)
             
             del model_name, model_params, tmp
-    
-
         #END FOR LOOP
     #     pre_train_result = train_models(parties, 
     #                                     X_train_MNIST, y_train_MNIST, 
@@ -162,90 +159,6 @@ if __name__ == "__main__":
             tmp = None
             tmp = load_model(os.path.join(dpath ,name))
             parties.append(tmp)
-            
-
-    tf_private_data = [] 
-    for i in range(len(private_data)) : 
-        tf_data = tf.data.Dataset.from_tensor_slices((private_data[i]['X'], private_data[i]['y']))
-        tf_data = tf_data.batch(private_training_batchsize)
-        tf_private_data.append(tf_data)
     
-    tf_private_test_data = tf.data.Dataset.from_tensor_slices((private_test_data['X'], private_test_data['y']))
-    tf_private_test_data = tf_private_test_data.batch(logits_matching_batchsize)
-
-    # logits = parties[0].predict(public_dataset['X'])
-    # agg_logits = aggregate([logits, logits], compress = False) 
-    # cmp_agg_logits = aggregate([logits, logits], compress = True) 
-    # print("comm overhead of fedavg:", size_of(parties[0])) 
-    # print("comm overhead of fedmd and fedakd:", size_of(agg_logits)) 
-    # print("comm overhead of cfedakd:", size_of(cmp_agg_logits)) 
-    # print("comm overhead of central:", size_of(private_data[0]['X']) + size_of(private_data[0]['y']))
-
     del  X_train_MNIST, y_train_MNIST, X_test_MNIST, y_test_MNIST, \
-    X_train_EMNIST, y_train_EMNIST, X_test_EMNIST, y_test_EMNIST, total_private_data, private_data
-
-
-    
-    
-    algorithms = {'fedavg': FedAvg, 'fedmd': FedMD}
-    if algorithm == 'fedavg':
-        alg = algorithms[algorithm](parties, tf_private_data, tf_private_test_data, N_rounds = N_rounds,
-                                    N_private_training_round = N_private_training_round,
-                                    private_training_batchsize = private_training_batchsize)
-    elif algorithm == 'fedmd':
-        alg = algorithms[algorithm](parties, 
-                    public_dataset = public_dataset,
-                    private_data = tf_private_data, 
-                    private_test_data = tf_private_test_data,
-                    N_rounds = N_rounds,
-                    N_alignment = N_alignment, 
-                    N_logits_matching_round = N_logits_matching_round,
-                    logits_matching_batchsize = logits_matching_batchsize, 
-                    N_private_training_round = N_private_training_round, 
-                    private_training_batchsize = private_training_batchsize,
-                    aug = aug, compress = compress, select = select)
-    
-    # initialization_result = fedmd.init_result
-    # pooled_train_result = fedmd.pooled_train_result
-
-    collaboration_performance = alg.collaborative_training()
-    
-    
-    # if result_save_dir is not None:
-    #     save_dir_path = os.path.abspath(result_save_dir)
-    #     #make dir
-    #     try:
-    #         os.makedirs(save_dir_path)
-    #     except OSError as e:
-    #         if e.errno != errno.EEXIST:
-    #             raise    
-    
-    # heatmaps_save_dir = join(result_save_dir, 'heatmaps')
-    # os.makedirs(heatmaps_save_dir)
-    # # save heatmaps 
-    # for i, heatmap in enumerate(fedmd.heatmaps):
-    #         plt.figure(figsize=(12,10))
-    #         sns.heatmap(heatmap, annot=True, cmap='coolwarm')
-
-    #         # Save the plot
-            # plt.savefig(join(heatmaps_save_dir, 'heatmap_{}.png').format(i), dpi=300, bbox_inches='tight')
-
-    with open(os.path.join(result_save_dir, 'col_performance.pkl'), 'wb') as f:
-        pickle.dump(collaboration_performance, f, protocol=pickle.HIGHEST_PROTOCOL)
-    
-    # models_save_dir = join(result_save_dir, 'models')
-    # os.makedirs(models_save_dir)
-
-    # loss_fnn = tf.keras.losses.SparseCategoricalCrossentropy(reduction = 'none')
-    # for i, d in enumerate(alg.collaborative_parties):
-    #     model = d['model_classifier']
-    #     train_preds, train_losses = model_stats(model, alg.tf_private_data[i], loss_fnn)
-    #     test_preds, test_losses = model_stats(model, alg.tf_private_test_data, loss_fnn)
-
-    #     model.save(os.path.join(models_save_dir, 'model_{}.h5').format(i))
-    #     np.save(os.path.join(models_save_dir, 'train_preds_{}.npy').format(i), train_preds)
-    #     np.save(os.path.join(models_save_dir, 'train_losses_{}.npy').format(i), train_losses)
-    #     np.save(os.path.join(models_save_dir, 'test_preds_{}.npy').format(i), test_preds)
-    #     np.save(os.path.join(models_save_dir, 'test_losses_{}.npy').format(i), test_losses)
-
-        
+    X_train_EMNIST, y_train_EMNIST, X_test_EMNIST, y_test_EMNIST

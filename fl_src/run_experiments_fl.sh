@@ -31,22 +31,24 @@
 
 echo "Begin experiments!" 
 
-python edit_config.py  N_rounds 30 N_parties 20
 
-python edit_config.py  aug False select False compress False #fedmd
-python FEMNIST_Balanced.py
+# python edit_config.py CIFAR_balance_conf algorithm fedmd  aug False select False compress False #fedmd
+# python CIFAR_Balanced.py
 
-python edit_config.py  aug True #fedakd
-python FEMNIST_Balanced.py
+python edit_config.py CIFAR_balance_conf aug True #fedakd
+python CIFAR_Balanced.py
 
-python edit_config.py  compress True #cfedakd
-python FEMNIST_Balanced.py
+python edit_config.py CIFAR_balance_conf compress True #cfedakd
+python CIFAR_Balanced.py
 
-python edit_config.py  compress False select True #sfedakd
-python FEMNIST_Balanced.py
+python edit_config.py CIFAR_balance_conf compress False select True #sfedakd
+python CIFAR_Balanced.py
 
-python edit_config.py aug False #sfedmd
-python FEMNIST_Balanced.py
+python edit_config.py CIFAR_balance_conf aug False #sfedmd
+python CIFAR_Balanced.py
+
+python edit_config.py CIFAR_balance_conf algorithm fedavg #fedavg
+python CIFAR_Balanced.py
 
 
 echo "Done experiments!"

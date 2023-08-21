@@ -1,8 +1,12 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from tensorflow.keras.models import Model
 
 
+
+def count_parameters(keras_model: Model) -> int:
+    return keras_model.count_params()
 
 
 # a function that calculates keras model size in KB
@@ -25,7 +29,7 @@ def size_of(obj) :
 
 
 
-def model_stats(model, data, labels, loss_fn) : 
+def model_stats(model, dataset, loss_fn) : 
     """a function that takes a model, data, and labels and returns the predictions and losses for the data
 
     Args:
@@ -35,8 +39,16 @@ def model_stats(model, data, labels, loss_fn) :
         loss_fn (keras loss function): loss function to be used for calculating the loss
     """
 
-    predictions = model.predict(data)
+    predictions, labels = [], [] 
+    for data, label in dataset : 
+        predictions.append(model.predict(data))
+        labels.append(label)
+    
+    # convert predictions to numpy 
+    predictions = np.concatenate(predictions, axis = 0)
+    labels = np.concatenate(labels, axis = 0)
     loss = loss_fn(labels, predictions)
+    
 
     return predictions, loss
 
@@ -50,8 +62,10 @@ def aggregate(soft_labels, compress) :
         n_sl = n_sl / n_sl.max(axis = 1, keepdims = True)
         n_sl = n_sl * 255
         n_sl = n_sl.astype(np.uint8)
+        # client sends n_sl to server
         global_sl = np.mean(n_sl, axis = 0).astype(np.uint8)
     else : 
+        # client sends soft_labels to server
         global_sl = np.mean(soft_labels, axis = 0)
     
     

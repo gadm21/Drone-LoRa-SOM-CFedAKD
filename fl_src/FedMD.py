@@ -13,7 +13,7 @@ import logging
 
 class FedMD():
     def __init__(self, parties, public_dataset, 
-                 private_data, total_private_data,  
+                 private_data,  
                  private_test_data, N_alignment,
                  N_rounds, 
                  N_logits_matching_round, logits_matching_batchsize, 
@@ -66,6 +66,8 @@ class FedMD():
                                                "model_weights": model_A_twin.get_weights()})
             
     def collaborative_training(self):  
+        client_time = 0 
+
         collaboration_performance = {i: [] for i in range(self.N_parties)}
         r = 0
         
@@ -76,6 +78,7 @@ class FedMD():
                 self.rounds_time.append(time.time() - rounds_start_time)
                 rounds_start_time = time.time()
             
+            t1 = time.time() 
             if not self.aug : 
                 # At beginning of each round, generate new alignment dataset
                 alignment_data = generate_alignment_data(self.public_dataset["X"], 
@@ -100,7 +103,6 @@ class FedMD():
                                                         new_public_dataset_y,
                                                         self.N_alignment)
             
-            
 
             print("round ", r)
             self.logger.info("round {0}".format(r))
@@ -116,9 +118,11 @@ class FedMD():
                 d["model_logits"].set_weights(d["model_weights"])
                 local_logits.append(d["model_logits"].predict(alignment_data["X"], verbose = 0))
             
+            t2 = time.time() 
             # print("model summary:", d['model_logits'].summary())
             # print("GT shape:", alignment_data["y"].shape)
-                
+            
+            
             logits = aggregate(local_logits, self.compress)
             # print("size of local soft labels:{0}, size of global soft labels:{1}".format(size_of(local_logits[0]), size_of(logits)))
             # print("length of local soft labels:{0}, length of global soft labels:{1}".format(len(local_logits[0]), len(logits)))
@@ -181,21 +185,6 @@ class FedMD():
             # self.heatmaps[r] = client_distance_map
             
 
-            # test performance
-            print("test performance ... ")
-            
-            for index, d in enumerate(self.collaborative_parties):
-                y_pred = d["model_classifier"].predict(self.private_test_data["X"], verbose = 0).argmax(axis = 1)
-                collaboration_performance[index].append(np.mean(self.private_test_data["y"] == y_pred))
-                
-                print(collaboration_performance[index][-1])
-                del y_pred
-                
-                
-            r+= 1
-            if r >= self.N_rounds:
-                if self.check_exit() : 
-                    break 
                 
             
             print("ratio of data saved by selection")
@@ -208,7 +197,8 @@ class FedMD():
                 self.logger.info("{0}".format(len(selected_data[i]) / len(alignment_data["X"])))
             self.logger.info("")
 
-                
+            
+            t3 = time.time() 
             print("updates models ...")
             for index, d in enumerate(self.collaborative_parties):
                 print("model {0} starting alignment with public logits... ".format(index))
@@ -241,8 +231,7 @@ class FedMD():
                 weights_to_use = None
                 weights_to_use = d["model_weights"]
                 d["model_classifier"].set_weights(weights_to_use)
-                d["model_classifier"].fit(self.private_data[index]["X"], 
-                                          self.private_data[index]["y"],       
+                d["model_classifier"].fit(self.private_data[index],       
                                           batch_size = self.private_training_batchsize, 
                                           epochs = self.N_private_training_round, 
                                           shuffle=True, verbose = 0)
@@ -251,16 +240,42 @@ class FedMD():
                 print("model {0} done private training. \n".format(index))
                 self.logger.info("model {0} done private training. \n".format(index))
             #END FOR LOOP
+            t4 = time.time()
         
+            # test performance
+            print("test performance ... ")
+            
+            for index, d in enumerate(self.collaborative_parties):
+                predictions, labels = [], [] 
+                for data, label in self.private_test_data : 
+                    y_pred = d["model_classifier"].predict(data, verbose = 0).argmax(axis = 1)
+                    predictions.append(y_pred) 
+                    labels.append(label)
+                predictions = np.concatenate(predictions, axis = 0)
+                labels = np.concatenate(labels, axis = 0)
+                collaboration_performance[index].append(np.mean(labels == predictions))
+                
+                print(collaboration_performance[index][-1])
+                self.logger.info(collaboration_performance[index][-1])
+                del y_pred
+                
+                
+            r+= 1
+            if r >= self.N_rounds:
+                # if self.check_exit(collaboration_performance) : 
+                break 
+        
+        client_time = (t4 - t3) + (t2 - t1) 
+        # print("client time;", client_time)
         #END WHILE LOOP
         return collaboration_performance
 
         
-    def check_exit(self) : 
-        last_acc = np.mean([self.collaborative_parties[i][-1] for i in range(self.N_parties)])
+    def check_exit(self, collaboration_performance) : 
+        last_acc = np.mean([collaboration_performance[i][-1] for i in range(self.N_parties)])
 
         for i in range(-3, -1, -1) : 
-            acc = np.mean([self.collaborative_parties[j][i] for j in range(self.N_parties)])
+            acc = np.mean([collaboration_performance[j][i] for j in range(self.N_parties)])
             if acc < last_acc : 
                 return True
         
@@ -321,6 +336,7 @@ class FedAvg():
         return avg_weights
 
     def collaborative_training(self):
+        client_time = 0 
         collaboration_performance = {i: [] for i in range(self.N_parties)}
         r = 0
         
@@ -328,43 +344,55 @@ class FedAvg():
             print("round ", r)
             self.logger.info("round {0}".format(r))
 
-
+            t1 = time.time()
             # set all parties to the average weights
             for i, d in enumerate(self.collaborative_parties):
-                d.set_weights(avg_weights)
-                d.fit(self.private_data[i]['X'],
-                               self.private_data[i]["y"],
+                d.fit(self.private_data[i],
                                batch_size=self.private_training_batchsize,
                                epochs= self.N_private_training_round,
                                shuffle=True, verbose=0)
                 
+            t2 = time.time()
+                
             all_model_weights = [d.get_weights() for d in self.collaborative_parties]
             avg_weights = self.new_aggregate(all_model_weights)
+            d.set_weights(avg_weights)
                 
 
             for index, d in enumerate(self.collaborative_parties):
-                y_pred = d.predict(self.private_test_data["X"], verbose=0).argmax(axis=1)
-                client_accuracy = np.mean(self.private_test_data["y"] == y_pred)
-                collaboration_performance[index].append(client_accuracy) 
+                predictions, labels = [], []
+                for data, label in self.private_test_data : 
+                    y_pred = d.predict(data, verbose = 0).argmax(axis = 1)
+                    predictions.append(y_pred) 
+                    labels.append(label)
+                predictions = np.concatenate(predictions, axis = 0)
+                labels = np.concatenate(labels, axis = 0)
+                client_accuracy = np.mean(labels == predictions)
+                collaboration_performance[index].append(client_accuracy)
+                
                 print("model {0} accuracy: {1}".format(index, client_accuracy))
                 self.logger.info("model {0} accuracy: {1}".format(index, client_accuracy))
 
             r += 1
             if r >= self.N_rounds :
-                if self.check_exit() : 
-                    break 
+                # if self.check_exit(collaboration_performance) : 
+                break 
+        
+        client_time = t2 - t1
+        # print("client time;", client_time)
                 
         return collaboration_performance
     
         
-    def check_exit(self) : 
-        last_acc = np.mean([self.collaborative_parties[i][-1] for i in range(self.N_parties)])
+
+        
+    def check_exit(self, collaboration_performance) : 
+        last_acc = np.mean([collaboration_performance[i][-1] for i in range(self.N_parties)])
 
         for i in range(-3, -1, -1) : 
-            acc = np.mean([self.collaborative_parties[j][i] for j in range(self.N_parties)])
+            acc = np.mean([collaboration_performance[j][i] for j in range(self.N_parties)])
             if acc < last_acc : 
                 return True
         
         return False
 
-    

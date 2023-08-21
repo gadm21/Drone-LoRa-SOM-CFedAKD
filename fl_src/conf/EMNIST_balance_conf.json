@@ -109,7 +109,7 @@
     ],
     "early_stopping": true,
     "learning_rate": 0.0001,
-    "N_parties": 20,
+    "N_parties": 10,
     "N_samples_per_class": 5,
     "N_alignment": 10000,
     "private_classes": [
@@ -133,15 +133,15 @@
         9
     ],
     "is_show": false,
-    "N_rounds": 30,
+    "N_rounds": 50,
     "N_logits_matching_round": 1,
     "N_private_training_round": 2,
-    "private_training_batchsize": 5,
-    "logits_matching_batchsize": 256,
+    "private_training_batchsize": 64,
+    "logits_matching_batchsize": 64,
     "EMNIST_dir": "./dataset/emnist-letters.mat",
     "result_save_dir": "../fl_results/FEMNIST_balanced",
     "aug": false,
     "compress": false,
-    "select": false, 
-    "algorithm": "fedavg" 
+    "select": false,
+    "algorithm": "fedavg"
 }
